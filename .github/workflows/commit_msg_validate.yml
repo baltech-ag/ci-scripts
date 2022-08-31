@@ -28,10 +28,10 @@ jobs:
       - name: Validate commit messages
         run: python ci-scripts/commit_msg_validate.py
         env:
-          CI_COMMIT_BEFORE_SHA: ${{ input.sha_before }}
-          CI_COMMIT_SHA: ${{ input.sha_after }}
-          CI_COMMIT_REF_NAME: ${{ input.ref_name }}
-          CI_PROJECT_DIR: ${{ input.project_dir }}
+          CI_COMMIT_BEFORE_SHA: ${{ inputs.sha_before }}
+          CI_COMMIT_SHA: ${{ inputs.sha_after }}
+          CI_COMMIT_REF_NAME: ${{ inputs.ref_name }}
+          CI_PROJECT_DIR: ${{ inputs.project_dir }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
