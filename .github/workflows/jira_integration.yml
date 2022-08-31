@@ -10,9 +10,6 @@ on:
       ref_name:
         required: true
         type: string
-      project_dir:
-        required: true
-        type: string
       project_name:
         required: true
         type: string
@@ -48,7 +45,7 @@ jobs:
           CI_COMMIT_REF_NAME: ${{ github.ref_name }}
           CI_PROJECT_NAME: ${{ project_name }}
           CI_PROJECT_NAMESPACE: ${{ project_namespace }}
-          CI_PROJECT_DIR: ${{ inputs.workspace }}
+          CI_PROJECT_DIR: ${{ github.workspace }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts

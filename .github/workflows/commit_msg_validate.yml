@@ -10,9 +10,6 @@ on:
       ref_name:
         required: true
         type: string
-      project_dir:
-        required: true
-        type: string
 jobs:
   commit-msg-validate:
     name: Validate commit messages
@@ -31,7 +28,7 @@ jobs:
           CI_COMMIT_BEFORE_SHA: ${{ inputs.sha_before }}
           CI_COMMIT_SHA: ${{ inputs.sha_after }}
           CI_COMMIT_REF_NAME: ${{ inputs.ref_name }}
-          CI_PROJECT_DIR: ${{ inputs.project_dir }}
+          CI_PROJECT_DIR: ${{ github.workspace }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
