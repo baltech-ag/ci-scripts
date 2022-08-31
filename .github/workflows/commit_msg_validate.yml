@@ -1,0 +1,37 @@
+on:
+  workflow_call:
+    inputs:
+      sha_before:
+        required: true
+        type: string
+      sha_after:
+        required: true
+        type: string
+      ref_name:
+        required: true
+        type: string
+      project_dir:
+        required: true
+        type: string
+jobs:
+  commit-msg-validate:
+    name: Validate commit messages
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v3
+        with:
+          repository: baltech-ag/ci-scripts
+          path: ci-scripts
+      - name: Validate commit messages
+        run: python ci-scripts/commit_msg_validate.py
+        env:
+          CI_COMMIT_BEFORE_SHA: ${{ input.sha_before }}
+          CI_COMMIT_SHA: ${{ input.sha_after }}
+          CI_COMMIT_REF_NAME: ${{ input.ref_name }}
+          CI_PROJECT_DIR: ${{ input.project_dir }}
+      - name: Cleanup
+        if: always()
+        run: rm -rf ci-scripts

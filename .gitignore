@@ -1,0 +1,11 @@
+/**/.idea/
+
+# Python
+*.pyc
+venv/
+.tox/
+dist/
+build/
+3*.exe
+3*.zip
+*.msi
