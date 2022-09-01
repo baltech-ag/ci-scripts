@@ -1,17 +1,12 @@
 #!python3
 
-import base64
-import re
 import os
 import io
 from collections import defaultdict
-from urllib import request
 
-from common import retrieve_commits, parse_subject
+from common import jira_append_comment, retrieve_commits, parse_subject, \
+    parse_issues
 
-
-TICKET_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
-TICKET_BLACKLIST = ("RS-232",)
 
 JIRA_URL = 'JIRA_URL'
 JIRA_USER = 'JIRA_USER'
@@ -29,9 +24,8 @@ def group_by_issue(commits):
     affected_issues = defaultdict(list)
     for commit in commits:
         commit_msg = f'{commit.subject}\n{commit.body}'
-        for ticket in set(map(str.upper, TICKET_REGEX.findall(commit_msg))):
-            if ticket not in TICKET_BLACKLIST:
-                affected_issues[ticket].append(commit)
+        for issue in parse_issues(commit_msg):
+            affected_issues[issue].append(commit)
     return dict(affected_issues)
 
 
@@ -61,24 +55,6 @@ def convert_to_comment(commits, server_url, branch_name,
     return comment.getvalue()
 
 
-def append_comment(issue, comment, jira_url, jira_user, jira_password):
-    escaped_comment = comment \
-        .replace('\\', '\\\\') \
-        .replace('"', '\\"') \
-        .replace('\r\n', '\n') \
-        .replace('\n', '\\n')
-    base64_auth = base64.b64encode(f'{jira_user}:{jira_password}'.encode())
-    req = request.Request(
-        f'{jira_url}/rest/api/2/issue/{issue}/comment',
-        headers={
-            'Authorization': 'Basic ' + base64_auth.decode(),
-            'Content-Type': 'application/json',
-        },
-        data=f'{{"body": "{escaped_comment}"}}'.encode()
-    )
-    request.urlopen(req)
-
-
 def create_jira_comment():
     env = os.environ
     new_branch = all(c == '0' for c in env[START_COMMIT])
@@ -98,7 +74,7 @@ def create_jira_comment():
             env[BRANCH_NAME],
             env[PROJECT_NAME],
             env[PROJECT_NAMESPACE])
-        append_comment(
+        jira_append_comment(
             issue,
             comment,
             env[JIRA_URL],

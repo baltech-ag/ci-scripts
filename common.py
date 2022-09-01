@@ -1,7 +1,12 @@
+import base64
 import re
 import subprocess
 from collections import namedtuple
+from urllib import request
 
+
+ISSUE_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
+ISSUE_BLACKLIST = ("RS-232",)
 
 COMMITTYPES = {
     'feature': '(+)',
@@ -14,6 +19,11 @@ SUBJECT_REGEX = re.compile(rf'^\[({"|".join(COMMITTYPES)})] (.*)')
 
 Commit = namedtuple('Commit', 'commitid, author, subject, body')
 Subject = namedtuple('subject', 'is_valid symbol text')
+
+
+def parse_issues(text):
+    unique_issues = set(map(str.upper, ISSUE_REGEX.findall(text)))
+    return [t for t in unique_issues if t not in ISSUE_BLACKLIST]
 
 
 def retrieve_commits(project_dir, start_commit, cur_commit='HEAD'):
@@ -36,3 +46,21 @@ def parse_subject(commit):
         symbol = ''
         text = commit.subject
     return Subject(is_valid, symbol, text)
+
+
+def jira_append_comment(issue, comment, jira_url, jira_user, jira_password):
+    escaped_comment = comment \
+        .replace('\\', '\\\\') \
+        .replace('"', '\\"') \
+        .replace('\r\n', '\n') \
+        .replace('\n', '\\n')
+    base64_auth = base64.b64encode(f'{jira_user}:{jira_password}'.encode())
+    req = request.Request(
+        f'{jira_url}/rest/api/2/issue/{issue}/comment',
+        headers={
+            'Authorization': 'Basic ' + base64_auth.decode(),
+            'Content-Type': 'application/json',
+        },
+        data=f'{{"body": "{escaped_comment}"}}'.encode()
+    )
+    request.urlopen(req)

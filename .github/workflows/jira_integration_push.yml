@@ -20,7 +20,7 @@ on:
         required: true
         type: string
 jobs:
-  jira-integration:
+  jira-integration-push:
     name: Validate commit messages
     runs-on: ubuntu-20.04
     if: github.ref_protected == 'true'
@@ -33,7 +33,7 @@ jobs:
           repository: baltech-ag/ci-scripts
           path: ci-scripts
       - name: Jira integration
-        run: python ci-scripts/jira_integration.py
+        run: python ci-scripts/jira_integration_push.py
         env:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_USER: ${{ secrets.JIRA_USER }}

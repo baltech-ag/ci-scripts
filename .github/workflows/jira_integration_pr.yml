@@ -1,0 +1,52 @@
+on:
+  workflow_call:
+    inputs:
+      pr_author_name:
+        required: true
+        type: string
+      pr_title:
+        required: true
+        type: string
+      pr_url:
+        required: true
+        type: string
+      branch_name:
+        required: true
+        type: string
+      base_branch_name:
+        required: true
+        type: string
+      project_name:
+        required: true
+        type: string
+      project_url:
+        required: true
+        type: string
+jobs:
+  jira-integration-pr:
+    name: Comment on new pull request
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v3
+        with:
+          repository: baltech-ag/ci-scripts
+          path: ci-scripts
+      - name: Jira integration
+        run: python ci-scripts/jira_integration_pr.py
+        env:
+          JIRA_URL: ${{ secrets.JIRA_URL }}
+          JIRA_USER: ${{ secrets.JIRA_USER }}
+          JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
+          CI_PR_AUTHOR_NAME: ${{ inputs.pr_author_name }}
+          CI_PR_TITLE: ${{ inputs.pr_title }}
+          CI_PR_URL: ${{ inputs.pr_url }}
+          CI_BRANCH_NAME: ${{ inputs.branch_name }}
+          CI_BASE_BRANCH_NAME: ${{ inputs.base_branch_name }}
+          CI_PROJECT_NAME: ${{ inputs.project_name }}
+          CI_PROJECT_URL: ${{ inputs.project_url }}
+      - name: Cleanup
+        if: always()
+        run: rm -rf ci-scripts
