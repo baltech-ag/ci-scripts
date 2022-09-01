@@ -25,7 +25,7 @@ def convert_to_comment(author_name, pr_title, pr_url, branch_name,
     comment = io.StringIO()
     comment.write(
         f'{{panel:bgColor={bgcolor}|borderStyle=none}}\n'
-        f"*{author_name}* opened a *pull request* "
+        f"(*b) *{author_name}* opened a *pull request* "
         f"in [{project_name}|{project_url}] "
         f"for branch *{base_branch_name}* ← *{branch_name}*:"
         "{quote}"
