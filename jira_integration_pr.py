@@ -21,17 +21,14 @@ PROJECT_URL = 'CI_PROJECT_URL'
 
 def convert_to_comment(author_name, pr_title, pr_url, branch_name,
                        base_branch_name, project_name, project_url):
-    bgcolor = '#deebff' if branch_name == 'master' else '#ffffce'
     comment = io.StringIO()
     comment.write(
-        f'{{panel:bgColor={bgcolor}|borderStyle=none}}\n'
         f"(*b) *{author_name}* opened a *pull request* "
         f"in [{project_name}|{project_url}] "
         f"for branch *{base_branch_name}* ← *{branch_name}*:"
         "{quote}"
         f"[{pr_title}|{pr_url}]"
         "{quote}\n"
-        "{panel}"
     )
     return comment.getvalue()
 
