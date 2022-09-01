@@ -1,15 +1,5 @@
 on:
   workflow_call:
-    inputs:
-      sha_before:
-        required: true
-        type: string
-      sha_after:
-        required: true
-        type: string
-      ref_name:
-        required: true
-        type: string
 jobs:
   commit-msg-validate:
     name: Validate commit messages
@@ -27,9 +17,9 @@ jobs:
       - name: Validate commit messages
         run: python ci-scripts/commit_msg_validate.py
         env:
-          CI_COMMIT_BEFORE_SHA: ${{ inputs.sha_before }}
-          CI_COMMIT_SHA: ${{ inputs.sha_after }}
-          CI_COMMIT_REF_NAME: ${{ inputs.ref_name }}
+          CI_COMMIT_BEFORE_SHA: ${{ github.event.before }}
+          CI_COMMIT_SHA: ${{ github.event.after }}
+          CI_COMMIT_REF_NAME: ${{ github.ref_name }}
           CI_PROJECT_DIR: ${{ github.workspace }}
       - name: Cleanup
         if: always()

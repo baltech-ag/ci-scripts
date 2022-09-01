@@ -1,27 +1,5 @@
 on:
   workflow_call:
-    inputs:
-      pr_author_name:
-        required: true
-        type: string
-      pr_title:
-        required: true
-        type: string
-      pr_url:
-        required: true
-        type: string
-      branch_name:
-        required: true
-        type: string
-      base_branch_name:
-        required: true
-        type: string
-      project_name:
-        required: true
-        type: string
-      project_url:
-        required: true
-        type: string
 jobs:
   jira-integration-pr:
     name: Comment on new pull request
@@ -40,13 +18,13 @@ jobs:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_USER: ${{ secrets.JIRA_USER }}
           JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
-          CI_PR_AUTHOR_NAME: ${{ inputs.pr_author_name }}
-          CI_PR_TITLE: ${{ inputs.pr_title }}
-          CI_PR_URL: ${{ inputs.pr_url }}
-          CI_BRANCH_NAME: ${{ inputs.branch_name }}
-          CI_BASE_BRANCH_NAME: ${{ inputs.base_branch_name }}
-          CI_PROJECT_NAME: ${{ inputs.project_name }}
-          CI_PROJECT_URL: ${{ inputs.project_url }}
+          CI_PR_AUTHOR_NAME: ${{ github.event.pull_request.user.login }}
+          CI_PR_TITLE: ${{ github.event.pull_request.title }}
+          CI_PR_URL: ${{ github.event.pull_request.url }}
+          CI_BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+          CI_BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
+          CI_PROJECT_NAME: ${{ github.event.pull_request.repository.name }}
+          CI_PROJECT_URL: ${{ github.event.pull_request.repository.url }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts

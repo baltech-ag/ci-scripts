@@ -1,24 +1,5 @@
 on:
   workflow_call:
-    inputs:
-      sha_before:
-        required: true
-        type: string
-      sha_after:
-        required: true
-        type: string
-      ref_name:
-        required: true
-        type: string
-      project_name:
-        required: true
-        type: string
-      project_namespace:
-        required: true
-        type: string
-      server_url:
-        required: true
-        type: string
 jobs:
   jira-integration-push:
     name: Validate commit messages
@@ -38,12 +19,12 @@ jobs:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_USER: ${{ secrets.JIRA_USER }}
           JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
-          CI_SERVER_URL: ${{ inputs.server_url }}
-          CI_COMMIT_BEFORE_SHA: ${{ inputs.sha_before }}
-          CI_COMMIT_SHA: ${{ inputs.sha_after }}
-          CI_COMMIT_REF_NAME: ${{ inputs.ref_name }}
-          CI_PROJECT_NAME: ${{ inputs.project_name }}
-          CI_PROJECT_NAMESPACE: ${{ inputs.project_namespace }}
+          CI_SERVER_URL: ${{ github.repositoryUrl }}
+          CI_COMMIT_BEFORE_SHA: ${{ github.event.before }}
+          CI_COMMIT_SHA: ${{ github.event.after }}
+          CI_COMMIT_REF_NAME: ${{ github.ref_name }}
+          CI_PROJECT_NAME: ${{ github.event.repository.name }}
+          CI_PROJECT_NAMESPACE: ${{ github.repository_owner }}
           CI_PROJECT_DIR: ${{ github.workspace }}
       - name: Cleanup
         if: always()
