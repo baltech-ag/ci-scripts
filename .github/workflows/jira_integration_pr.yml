@@ -20,11 +20,11 @@ jobs:
           JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
           CI_PR_AUTHOR_NAME: ${{ github.event.pull_request.user.login }}
           CI_PR_TITLE: ${{ github.event.pull_request.title }}
-          CI_PR_URL: ${{ github.event.pull_request.url }}
+          CI_PR_URL: ${{ github.event.pull_request.html_url }}
           CI_BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
           CI_BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
           CI_PROJECT_NAME: ${{ github.event.repository.name }}
-          CI_PROJECT_URL: ${{ github.event.repository.url }}
+          CI_PROJECT_URL: ${{ github.event.repository.html_url }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
