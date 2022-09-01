@@ -23,8 +23,8 @@ jobs:
           CI_PR_URL: ${{ github.event.pull_request.url }}
           CI_BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
           CI_BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
-          CI_PROJECT_NAME: ${{ github.event.pull_request.repository.name }}
-          CI_PROJECT_URL: ${{ github.event.pull_request.repository.url }}
+          CI_PROJECT_NAME: ${{ github.event.repository.name }}
+          CI_PROJECT_URL: ${{ github.event.repository.url }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
