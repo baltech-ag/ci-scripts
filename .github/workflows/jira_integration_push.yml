@@ -2,11 +2,13 @@ on:
   workflow_call:
 jobs:
   jira-integration-push:
-    name: Validate commit messages
+    name: Comment pushed commit messages
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Checkout ci-scripts repository
         uses: actions/checkout@v3
         with:
