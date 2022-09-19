@@ -11,12 +11,11 @@ from common import jira_append_comment, retrieve_commits, parse_subject, \
 JIRA_URL = 'JIRA_URL'
 JIRA_USER = 'JIRA_USER'
 JIRA_PASSWORD = 'JIRA_PASSWORD'
-SERVER_URL = 'CI_SERVER_URL'
+REPO_URL = 'CI_REPO_URL'
 START_COMMIT = 'CI_COMMIT_BEFORE_SHA'
 CUR_COMMIT = 'CI_COMMIT_SHA'
 BRANCH_NAME = 'CI_COMMIT_REF_NAME'
 PROJECT_NAME = 'CI_PROJECT_NAME'
-PROJECT_NAMESPACE = 'CI_PROJECT_NAMESPACE'
 PROJECT_DIR = 'CI_PROJECT_DIR'
 
 
@@ -29,9 +28,7 @@ def group_by_issue(commits):
     return dict(affected_issues)
 
 
-def convert_to_comment(commits, server_url, branch_name,
-                       project_name, project_namespace):
-    repo_url = f'{server_url}/{project_namespace}/{project_name}'
+def convert_to_comment(commits, repo_url, branch_name, project_name):
     comment = io.StringIO()
     bgcolor = '#deebff' if branch_name == 'master' else '#ffffce'
     comment.write(f'{{panel:bgColor={bgcolor}|borderStyle=none}}\n')
@@ -68,10 +65,9 @@ def create_jira_comment():
         ))
         comment = convert_to_comment(
             reversed(commits),
-            env[SERVER_URL],
+            env[REPO_URL],
             env[BRANCH_NAME],
-            env[PROJECT_NAME],
-            env[PROJECT_NAMESPACE])
+            env[PROJECT_NAME])
         jira_append_comment(
             issue,
             comment,
