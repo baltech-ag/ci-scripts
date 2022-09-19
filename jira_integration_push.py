@@ -31,6 +31,7 @@ def group_by_issue(commits):
 
 def convert_to_comment(commits, server_url, branch_name,
                        project_name, project_namespace):
+    repo_url = f'{server_url}/{project_namespace}/{project_name}'
     comment = io.StringIO()
     bgcolor = '#deebff' if branch_name == 'master' else '#ffffce'
     comment.write(f'{{panel:bgColor={bgcolor}|borderStyle=none}}\n')
@@ -39,15 +40,12 @@ def convert_to_comment(commits, server_url, branch_name,
         subject = parse_subject(commit)
         comment.write(
             f"{subject.symbol} "
-            f"[{subject.text}|"
-            f"{server_url}/{project_namespace}/{project_name}"
-            f"/-/commit/{commit.commitid}]\n")
+            f"[{subject.text}|{repo_url}/commit/{commit.commitid}]\n")
         authors.add(commit.author)
     comment.write('\n')
     comment.write(
         f'{{color:#4c9aff}}{" ".join(authors)} contributed to '
-        f'[{project_name}|{server_url}/{project_namespace}/{project_name}'
-        f'/-/tree/{branch_name}]')
+        f'[{project_name}|{repo_url}/tree/{branch_name}]')
     if branch_name != 'master':
         comment.write(f' at *{branch_name}*')
     comment.write('{color}\n')

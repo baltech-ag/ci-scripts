@@ -20,7 +20,7 @@ jobs:
           JIRA_URL: ${{ secrets.JIRA_URL }}
           JIRA_USER: ${{ secrets.JIRA_USER }}
           JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
-          CI_SERVER_URL: ${{ github.repositoryUrl }}
+          CI_SERVER_URL: ${{ github.server_url }}/${{ github.repository }}
           CI_COMMIT_BEFORE_SHA: ${{ github.event.before }}
           CI_COMMIT_SHA: ${{ github.event.after }}
           CI_COMMIT_REF_NAME: ${{ github.ref_name }}
