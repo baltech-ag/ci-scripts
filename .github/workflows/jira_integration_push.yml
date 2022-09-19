@@ -4,6 +4,7 @@ jobs:
   jira-integration-push:
     name: Comment pushed commit messages
     runs-on: ubuntu-20.04
+    if: github.ref_protected
     steps:
       - name: Checkout
         uses: actions/checkout@v3
