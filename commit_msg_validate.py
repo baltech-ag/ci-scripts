@@ -25,7 +25,10 @@ def validate_commit_msgs():
             print(f"UNGUELTIGE COMMIT MESSAGE: {subject.text}")
             print("-"*60)
             print()
-            sys.exit(-1)
+            msg = subject.text.upper()
+            if env[BRANCH_NAME] == 'master' or \
+                    not (msg.startswith("DRAFT:") or msg.startswith("WIP:")):
+                sys.exit(-1)
 
 
 def main():
