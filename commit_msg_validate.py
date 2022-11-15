@@ -22,7 +22,7 @@ def validate_commit_msgs():
         if not subject.is_valid:
             print()
             print("-"*60)
-            raise(f"UNGUELTIGE COMMIT MESSAGE: {subject.text}")
+            print(f"UNGUELTIGE COMMIT MESSAGE: {subject.text}")
             print("-"*60)
             print()
             sys.exit(-1)
