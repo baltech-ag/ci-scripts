@@ -1,6 +1,7 @@
 #!python3
 
 import os
+import sys
 
 from common import retrieve_commits, parse_subject
 
@@ -19,7 +20,12 @@ def validate_commit_msgs():
         env[CUR_COMMIT])
     for subject in map(parse_subject, commits):
         if not subject.is_valid:
-            raise ValueError(f'Invalid Subject: {subject.text!r}')
+            print()
+            print("-"*60)
+            raise(f"UNGUELTIGE COMMIT MESSAGE: {subject.text}")
+            print("-"*60)
+            print()
+            sys.exit(-1)
 
 
 def main():
