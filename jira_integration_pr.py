@@ -21,13 +21,14 @@ PROJECT_URL = 'CI_PROJECT_URL'
 
 def convert_to_comment(author_name, pr_title, pr_url, branch_name,
                        base_branch_name, project_name, project_url):
+    escaped_pr_title = pr_title.replace("[", "\\[").replace("]", "\\]")
     comment = io.StringIO()
     comment.write(
         f"(*b) *{author_name}* opened a [*pull request*|{pr_url}] "
         f"in [{project_name}|{project_url}] "
         f"for branch *{base_branch_name}* ← *{branch_name}*:"
         "{quote}"
-        f"{pr_title}"
+        f"{escaped_pr_title}"
         "{quote}\n"
     )
     return comment.getvalue()
