@@ -6,7 +6,11 @@ from urllib import request
 
 
 ISSUE_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
-ISSUE_BLACKLIST = ("RS-232",)
+ISSUE_BLACKLIST = (
+    "RS-232",
+    "UTF-8",
+    "UTF-16",
+)
 
 COMMITTYPES = {
     'feature': '(+)',
