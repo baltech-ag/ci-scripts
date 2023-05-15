@@ -2,10 +2,10 @@
 
 import os
 import io
+import json
 from collections import defaultdict
 
-from common import jira_append_comment, retrieve_commits, parse_subject, \
-    parse_issues
+from common import retrieve_commits, parse_subject, parse_issues
 
 
 JIRA_URL = 'JIRA_URL'
@@ -50,7 +50,7 @@ def convert_to_comment(commits, repo_url, branch_name, project_name):
     return comment.getvalue()
 
 
-def create_jira_comment():
+def create_jira_comments():
     env = os.environ
     new_branch = all(c == '0' for c in env[START_COMMIT])
     all_commits = retrieve_commits(
@@ -58,26 +58,19 @@ def create_jira_comment():
         'origin/master' if new_branch else env[START_COMMIT],
         env[CUR_COMMIT])
     affected_issues = group_by_issue(all_commits)
-    for issue, commits in affected_issues.items():
-        print("Creating comment in {} with {}".format(
-            issue,
-            "1 commit" if len(commits) == 1 else "{} commits".format(len(commits)),
-        ))
-        comment = convert_to_comment(
+    return {
+        issue: convert_to_comment(
             reversed(commits),
             env[REPO_URL],
             env[BRANCH_NAME],
-            env[PROJECT_NAME])
-        jira_append_comment(
-            issue,
-            comment,
-            env[JIRA_URL],
-            env[JIRA_USER],
-            env[JIRA_PASSWORD])
+            env[PROJECT_NAME]
+        )
+        for issue, commits in affected_issues.items()
+    }
 
 
 def main():
-    create_jira_comment()
+    print(json.dumps(create_jira_comments()))
 
 
 if __name__ == '__main__':

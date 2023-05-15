@@ -12,12 +12,9 @@ jobs:
         with:
           repository: baltech-ag/ci-scripts
           path: ci-scripts
-      - name: Jira integration
-        run: python ci-scripts/jira_integration_pr.py
+      - name: Build Comment
+        run: python ci-scripts/build_pr_comment.py > jira_comment.json
         env:
-          JIRA_URL: ${{ secrets.JIRA_URL }}
-          JIRA_USER: ${{ secrets.JIRA_USER }}
-          JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
           CI_PR_AUTHOR_NAME: ${{ github.event.pull_request.user.login }}
           CI_PR_TITLE: ${{ github.event.pull_request.title }}
           CI_PR_URL: ${{ github.event.pull_request.html_url }}
@@ -25,6 +22,13 @@ jobs:
           CI_BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
           CI_PROJECT_NAME: ${{ github.event.repository.name }}
           CI_PROJECT_URL: ${{ github.event.repository.html_url }}
+      - name: Post Comment
+        uses: ./ci-scripts/actions/jira-comment
+        with:
+          comment_file: jira_comment.json
+          user: ${{ secrets.JIRA_USER }}
+          password: ${{ secrets.JIRA_PASSWORD }}
+          url: ${{ secrets.JIRA_URL }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
