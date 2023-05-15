@@ -3,13 +3,11 @@
 
 import io
 import os
+import json
 
-from common import jira_append_comment, parse_issues
+from common import parse_issues
 
 
-JIRA_URL = 'JIRA_URL'
-JIRA_USER = 'JIRA_USER'
-JIRA_PASSWORD = 'JIRA_PASSWORD'
 PR_AUTHOR_NAME = 'CI_PR_AUTHOR_NAME'
 PR_TITLE = 'CI_PR_TITLE'
 PR_URL = 'CI_PR_URL'
@@ -38,7 +36,7 @@ def create_jira_comment():
     env = os.environ
     issues = parse_issues(env[BRANCH_NAME])
     if len(issues) == 0:
-        return
+        return {}
     issue = issues[0]
     comment = convert_to_comment(
         env[PR_AUTHOR_NAME],
@@ -48,16 +46,11 @@ def create_jira_comment():
         env[BASE_BRANCH_NAME],
         env[PROJECT_NAME],
         env[PROJECT_URL])
-    jira_append_comment(
-        issue,
-        comment,
-        env[JIRA_URL],
-        env[JIRA_USER],
-        env[JIRA_PASSWORD])
+    return {issue: comment}
 
 
 def main():
-    create_jira_comment()
+    print(json.dumps(create_jira_comment()))
 
 
 if __name__ == '__main__':

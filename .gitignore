@@ -1,4 +1,5 @@
 /**/.idea/
+!/.idea/jsonSchemas.xml
 
 # Python
 *.pyc

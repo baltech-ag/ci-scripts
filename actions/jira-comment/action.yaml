@@ -1,0 +1,47 @@
+name: "Jira Comment"
+description: "Adds a Comment to an Jira Issue"
+branding:
+  icon: message-square
+  color: blue
+inputs:
+  comment_file:
+    required: true
+    description: "Path to a json file with the comments (dict with issue as key and comment as value)"
+  user:
+    required: true
+    description: "Jira username"
+  password:
+    required: true
+    description: "Jira user password"
+  url:
+    required: true
+    description: "Jira base url"
+runs:
+  using: composite
+  steps:
+    - shell: python
+      run: |
+        import base64
+        import json
+        from urllib import request
+        
+        with open('${{ inputs.comment_file }}', mode="r") as cf:
+          comments = json.load(cf)
+        
+        for issue, comment in comments.items():
+          print(f'Create comment in Jira Issue {issue}')
+          escaped_comment = comment \
+            .replace('\\', '\\\\') \
+            .replace('"', '\\"') \
+            .replace('\r\n', '\n') \
+            .replace('\n', '\\n')
+          base64_auth = base64.b64encode('${{ inputs.user }}:${{ inputs.password }}'.encode())
+          req = request.Request(
+            f'${{ inputs.url }}/rest/api/2/issue/{issue}/comment',
+            headers={
+              'Authorization': 'Basic ' + base64_auth.decode(),
+              'Content-Type': 'application/json',
+            },
+            data=f'{{"body": "{escaped_comment}"}}'.encode()
+          )
+          request.urlopen(req)

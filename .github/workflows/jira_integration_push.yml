@@ -16,17 +16,21 @@ jobs:
           repository: baltech-ag/ci-scripts
           path: ci-scripts
       - name: Jira integration
-        run: python ci-scripts/jira_integration_push.py
+        run: python ci-scripts/build_push_comment.py > jira_comment.json
         env:
-          JIRA_URL: ${{ secrets.JIRA_URL }}
-          JIRA_USER: ${{ secrets.JIRA_USER }}
-          JIRA_PASSWORD: ${{ secrets.JIRA_PASSWORD }}
           CI_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
           CI_COMMIT_BEFORE_SHA: ${{ github.event.before }}
           CI_COMMIT_SHA: ${{ github.event.after }}
           CI_COMMIT_REF_NAME: ${{ github.ref_name }}
           CI_PROJECT_NAME: ${{ github.event.repository.name }}
           CI_PROJECT_DIR: ${{ github.workspace }}
+      - name: Post Comment
+        uses: ./ci-scripts/actions/jira-comment
+        with:
+          comment_file: jira_comment.json
+          user: ${{ secrets.JIRA_USER }}
+          password: ${{ secrets.JIRA_PASSWORD }}
+          url: ${{ secrets.JIRA_URL }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts

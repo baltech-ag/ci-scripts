@@ -1,8 +1,6 @@
-import base64
 import re
 import subprocess
 from collections import namedtuple
-from urllib import request
 
 
 ISSUE_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
@@ -50,21 +48,3 @@ def parse_subject(commit):
         symbol = ''
         text = commit.subject
     return Subject(is_valid, symbol, text)
-
-
-def jira_append_comment(issue, comment, jira_url, jira_user, jira_password):
-    escaped_comment = comment \
-        .replace('\\', '\\\\') \
-        .replace('"', '\\"') \
-        .replace('\r\n', '\n') \
-        .replace('\n', '\\n')
-    base64_auth = base64.b64encode(f'{jira_user}:{jira_password}'.encode())
-    req = request.Request(
-        f'{jira_url}/rest/api/2/issue/{issue}/comment',
-        headers={
-            'Authorization': 'Basic ' + base64_auth.decode(),
-            'Content-Type': 'application/json',
-        },
-        data=f'{{"body": "{escaped_comment}"}}'.encode()
-    )
-    request.urlopen(req)

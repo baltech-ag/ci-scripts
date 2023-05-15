@@ -1,0 +1,19 @@
+name: "Github Comment"
+description: "Adds a Comment to an Github PR"
+branding:
+  icon: git-pull-request
+  color: gray-dark
+inputs:
+  pr_number:
+    required: true
+    description: "PR number to comment to"
+  comment_file:
+    required: true
+    description: "File containing the comment text"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: gh pr comment ${{ inputs.pr_number }} --body-file=${{ inputs.comment_file }}
+      env:
+        GH_TOKEN: ${{ github.token }}
