@@ -13,7 +13,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - shell: bash
+    - if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: gh pr comment ${{ inputs.pr_number }} --body-file=${{ inputs.comment_file }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+    - if: ${{ runner.os == 'Windows' }}
+      shell: cmd
       run: gh pr comment ${{ inputs.pr_number }} --body-file=${{ inputs.comment_file }}
       env:
         GH_TOKEN: ${{ github.token }}
