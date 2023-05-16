@@ -1,0 +1,51 @@
+name: "Jira Issue Exists"
+description: "Checks if a Jira Issue exists"
+branding:
+  icon: check-square
+  color: blue
+inputs:
+  issue:
+    required: true
+    description: "Jira Issue ID (e.g. PROD-80)"
+  user:
+    required: true
+    description: "Jira username"
+  password:
+    required: true
+    description: "Jira user password"
+  url:
+    required: true
+    description: "Jira base url"
+outputs:
+  exists:
+    description: "1 if the Issue exists else 0"
+    value: ${{ steps.check.outputs.exists }}
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: python
+      run: |
+        import os
+        import base64
+        from urllib import request
+        from urllib.error import HTTPError
+        
+        base64_auth = base64.b64encode('${{ inputs.user }}:${{ inputs.password }}'.encode())
+        req = request.Request(
+          '${{ inputs.url }}/rest/api/2/issue/${{ inputs.issue }}',
+          headers={
+            'Authorization': 'Basic ' + base64_auth.decode(),
+            'Content-Type': 'application/json',
+          },
+        )
+        try:
+          exists = request.urlopen(req).status == 200
+        except HTTPError as error:
+          if error.code == 404:
+            exists = False
+          else:
+            raise
+        
+        with open(os.environ['GITHUB_OUTPUT'], mode="a") as output:
+          print(f'exists={int(exists)}', file=output)
