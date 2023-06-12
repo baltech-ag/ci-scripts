@@ -30,7 +30,7 @@ jobs:
         if: ${{ github.event_name == 'pull_request' }}
         run: |
           echo "CI_COMMIT_BEFORE_SHA=${{ github.event.pull_request.base.sha }}" >> $GITHUB_ENV
-          echo "CI_COMMIT_SHA=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+          echo "CI_COMMIT_SHA=" >> $GITHUB_ENV
           echo "CI_COMMIT_REF_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
       - name: Jira integration
         run: python ci-scripts/build_push_comment.py > jira_comment.json
