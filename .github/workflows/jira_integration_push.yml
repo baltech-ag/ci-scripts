@@ -21,13 +21,21 @@ jobs:
         with:
           repository: baltech-ag/ci-scripts
           path: ci-scripts
+      - name: Set default env
+        run: |
+          echo "CI_COMMIT_BEFORE_SHA=${{ github.event.before }} >> $GITHUB_ENV
+          echo "CI_COMMIT_SHA=${{ github.event.after }} >> $GITHUB_ENV
+          echo "CI_COMMIT_REF_NAME=${{ github.ref_name }} >> $GITHUB_ENV
+      - name: Set env for pull request event
+        if: ${{ github.event_name == "pull_request" }}
+        run: |
+          echo "CI_COMMIT_BEFORE_SHA=${{ github.event.pull_request.base.sha }} >> $GITHUB_ENV
+          echo "CI_COMMIT_SHA=${{ github.event.pull_request.head.sha }} >> $GITHUB_ENV
+          echo "CI_COMMIT_REF_NAME=${{ github.event.pull_request.base.ref }} >> $GITHUB_ENV
       - name: Jira integration
         run: python ci-scripts/build_push_comment.py > jira_comment.json
         env:
           CI_REPO_URL: ${{ github.server_url }}/${{ github.repository }}
-          CI_COMMIT_BEFORE_SHA: ${{ github.event.before }}
-          CI_COMMIT_SHA: ${{ github.event.after }}
-          CI_COMMIT_REF_NAME: ${{ github.ref_name }}
           CI_PROJECT_NAME: ${{ github.event.repository.name }}
           CI_PROJECT_DIR: ${{ github.workspace }}
       - name: Post Comment
