@@ -23,7 +23,9 @@ runs:
       run: |
         import base64
         import json
+        import sys
         from urllib import request
+        from urllib.error import HTTPError
         
         with open('${{ inputs.comment_file }}', mode="r") as cf:
           comments = json.load(cf)
@@ -44,4 +46,10 @@ runs:
             },
             data=f'{{"body": "{escaped_comment}"}}'.encode()
           )
-          request.urlopen(req)
+          try:
+            request.urlopen(req)
+          except HTTPError as e:
+            message = f"HTTP Error {e.code} while requesting {e.url}"
+            if e.reason:
+                message += f", reason: {e.reason}"
+            sys.exit(message)
