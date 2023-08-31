@@ -1,0 +1,49 @@
+name: Release Actions - Create tag
+on:
+  workflow_call:
+    inputs:
+      ci-scripts-ref:
+        type: string
+        required: false
+        default: master
+      create-release-branch:
+        type: boolean
+        required: false
+        default: true
+env:
+  GITHUB_TOKEN: ${{ secrets.RELEASE_ACTIONS_ACCESS_TOKEN }}
+jobs:
+  create-tag:
+    name: Create tag
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Configure git
+        run: |
+          git config --global url.https://${{ secrets.RELEASE_ACTIONS_ACCESS_TOKEN }}@github.com/.insteadOf https://github.com/
+          git config --global user.name "${{ github.event.pusher.name }}"
+          git config --global user.email "${{ github.event.pusher.email }}"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v4
+        with:
+          repository: baltech-ag/ci-scripts
+          ref: ${{ inputs.ci-scripts-ref }}
+          path: ci-scripts
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Read VERSION file
+        id: version
+        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+      - name: Create tag on release commit
+        run: |
+          git tag v${{ steps.version.outputs.version }}
+          git push origin v${{ steps.version.outputs.version }}
+      - name: Create release branch
+        if: inputs.create-release-branch
+        run: python ci-scripts/release_actions.py create-release-branch 
+      - name: Cleanup
+        if: always()
+        run: rm -rf ci-scripts
