@@ -55,7 +55,6 @@ def prepare_next_version(args: Namespace) -> None:
         git("add", modified_file)
     git("commit", "-m", f"[release] {project} {next_version}")
     git("push", "origin", branch)
-    print(next_version)
 
 
 def create_release_branch(args: Namespace) -> None:
