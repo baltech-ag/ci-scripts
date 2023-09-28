@@ -1,0 +1,19 @@
+# This workflow is called from the organization workflow org_release_actions.yml, do not change its filename
+# https://baltech-wiki.atlassian.net/wiki/spaces/IN/pages/257785857/NeuesProjektAnlegen#GitHub-Workflows-einrichten
+name: Release Actions - Deploy build
+on:
+  workflow_call:
+env:
+  deploy-mode: ${{ startsWith(github.ref, 'refs/tags/') == true && 'stable' || 'development' }}
+jobs:
+  create-build:
+    name: Create build
+    runs-on: ...
+    steps:
+      ...
+  deploy-build:
+    name: Deploy build
+    needs: [create-build]
+    runs-on: ...
+    steps:
+      ...

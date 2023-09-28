@@ -46,6 +46,7 @@ def increase_version(version: str, mode: str) -> str:
 def prepare_next_version(args: Namespace) -> None:
     project = os.environ['CI_PROJECT_NAME']
     branch = os.environ['CI_BRANCH_NAME']
+    assert branch in ("release-major", "release-minor", "release-patch")
     version = _VERSION_PATH.read_text().strip()
     next_version = increase_version(version, branch.removeprefix("release-"))
     _VERSION_PATH.write_text(next_version)

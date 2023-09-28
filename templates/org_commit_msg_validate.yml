@@ -1,0 +1,11 @@
+# This is an organization workflow, it should not be edited!
+# The original source is in the baltech-ag/ci-scripts repository in the templates folder
+# https://baltech-wiki.atlassian.net/wiki/spaces/IN/pages/257785857/NeuesProjektAnlegen#GitHub-Workflows-einrichten
+name: Validate Commit Messages
+on:
+  push:
+    branches:
+      - '**'
+jobs:
+  commit-msg-validate:
+    uses: baltech-ag/ci-scripts/.github/workflows/commit_msg_validate.yml@master

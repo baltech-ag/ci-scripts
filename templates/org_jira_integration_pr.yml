@@ -1,0 +1,14 @@
+# This is an organization workflow, it should not be edited!
+# The original source is in the baltech-ag/ci-scripts repository in the templates folder
+# https://baltech-wiki.atlassian.net/wiki/spaces/IN/pages/257785857/NeuesProjektAnlegen#GitHub-Workflows-einrichten
+name: Jira PR Integration
+on:
+  pull_request:
+    types:
+      - opened
+    branches:
+      - '**'
+jobs:
+  jira-integration-pr:
+    uses: baltech-ag/ci-scripts/.github/workflows/jira_integration_pr.yml@master
+    secrets: inherit
