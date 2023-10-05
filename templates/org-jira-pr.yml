@@ -1,6 +1,7 @@
+# Version: 2023-10-05
 # This is an organization workflow, it should not be edited!
 # The original source is in the baltech-ag/ci-scripts repository in the templates folder
-# https://baltech-wiki.atlassian.net/wiki/spaces/IN/pages/257785857/NeuesProjektAnlegen#GitHub-Workflows-einrichten
+# https://baltech-wiki.atlassian.net/wiki/spaces/THIR/pages/257785857/GitHub#GitHub-Workflows-f%C3%BCr-Releasemanagement-einrichten
 name: Jira PR Integration
 on:
   pull_request:
@@ -10,5 +11,5 @@ on:
       - '**'
 jobs:
   jira-integration-pr:
-    uses: baltech-ag/ci-scripts/.github/workflows/jira_integration_pr.yml@master
+    uses: baltech-ag/ci-scripts/.github/workflows/jira-pr.yml@master
     secrets: inherit

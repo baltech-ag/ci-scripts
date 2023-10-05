@@ -1,0 +1,29 @@
+# Version: 2023-10-05
+# This is an organization workflow, it should not be edited!
+# The original source is in the baltech-ag/ci-scripts repository in the templates folder
+# https://baltech-wiki.atlassian.net/wiki/spaces/THIR/pages/257785857/GitHub#GitHub-Workflows-f%C3%BCr-Releasemanagement-einrichten
+name: Release Actions
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches:
+      - 'master'
+    types:
+      - 'closed'
+jobs:
+  create-pr:
+    uses: baltech-ag/ci-scripts/.github/workflows/release-actions-create_pr.yml@master
+    secrets: inherit
+  create-tag:
+    uses: baltech-ag/ci-scripts/.github/workflows/release-actions-create_tag.yml@master
+    secrets: inherit
+  deploy-build:
+    uses: ./.github/workflows/repo-release-actions-deploy.yml
+    with:
+      deploy-mode: ${{ startsWith(github.ref, 'refs/tags/v') == true && 'release' || 'development' }}
+    secrets: inherit
+    if: github.event_name == 'push'

@@ -1,0 +1,21 @@
+# This workflow is called from the workflow org-release-actions.yml, do not change its filename
+# https://baltech-wiki.atlassian.net/wiki/spaces/THIR/pages/257785857/GitHub#GitHub-Workflows-f%C3%BCr-Releasemanagement-einrichten
+name: Release Actions - Deploy build
+on:
+  workflow_call:
+    inputs:
+      deploy-mode: # one of development|release
+        type: string
+        required: true
+jobs:
+  create-build:
+    name: Create build
+    runs-on: ...
+    steps:
+      ...
+  deploy-build:
+    name: Deploy build
+    needs: [create-build]
+    runs-on: ...
+    steps:
+      ...

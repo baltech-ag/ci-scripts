@@ -8,7 +8,13 @@ on:
       artifact-file-name:
         type: string
         required: true
-      deployment-file:
+      projects-folder:
+        type: string
+        required: true
+      project-name:
+        type: string
+        required: true
+      file-extension:
         type: string
         required: true
 jobs:
@@ -23,12 +29,15 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.artifact-name }}
+      - name: Read project version
+        id: version
+        run: ("version=" + (Get-Content VERSION).replace(".", "_")) | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       - name: Deploy
         shell: cmd
         run: |
           setlocal EnableDelayedExpansion
-          set "SOURCE=${{steps.download-artifact.outputs.download-path}}\${{ inputs.artifact-file-name }}"
+          set "SOURCE=${{ steps.download-artifact.outputs.download-path }}\${{ inputs.artifact-file-name }}"
           echo Source file: !SOURCE!
-          set "DEST=%OneDriveCommercial%\${{ inputs.deployment-file }}"
+          set "DEST=%OneDriveCommercial%\F&E\Projekte\${{ inputs.projects-folder }}\${{ inputs.project-name }}\bin\${{ inputs.project-name }}_${{ steps.version.outputs.version }}${{ inputs.file-extension }}"
           echo Destination file: !DEST!
           copy "!SOURCE!" "!DEST!"
