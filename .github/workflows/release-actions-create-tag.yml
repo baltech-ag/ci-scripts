@@ -10,17 +10,21 @@ on:
         type: boolean
         required: false
         default: true
-env:
-  GITHUB_TOKEN: ${{ secrets.RELEASE_ACTIONS_ACCESS_TOKEN }}
 jobs:
   create-tag:
     name: Create tag
     runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(fromJson('["release-major", "release-minor", "release-patch"]'), github.head_ref) }}
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Configure git
         run: |
-          git config --global url.https://${{ secrets.RELEASE_ACTIONS_ACCESS_TOKEN }}@github.com/.insteadOf https://github.com/
+          git config --global url.https://${{ steps.generate-token.outputs.token }}@github.com/.insteadOf https://github.com/
           git config --global user.name "${{ github.event.pusher.name }}"
           git config --global user.email "${{ github.event.pusher.email }}"
       - name: Checkout

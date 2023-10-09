@@ -6,17 +6,21 @@ on:
         type: string
         required: false
         default: master
-env:
-  GITHUB_TOKEN: ${{ secrets.RELEASE_ACTIONS_ACCESS_TOKEN }}
 jobs:
   create-pr:
     name: Create PR
     runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'push' && contains(fromJson('["release-major", "release-minor", "release-patch"]'), github.head_ref) && !startsWith(github.event.head_commit.message, '[release]') }}
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Configure git
         run: |
-          git config --global url.https://${{ secrets.RELEASE_ACTIONS_ACCESS_TOKEN }}@github.com/.insteadOf https://github.com/
+          git config --global url.https://${{ steps.generate-token.outputs.token }}@github.com/.insteadOf https://github.com/
           git config --global user.name "${{ github.event.pusher.name }}"
           git config --global user.email "${{ github.event.pusher.email }}"
       - name: Checkout
@@ -51,8 +55,10 @@ jobs:
         run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
       - name: Create PR for release branch
         run: |
-          gh pr create --base master --head ${{ github.ref }} --title "[release] ${{ github.event.repository.name }} ${{ steps.get-version.outputs.version }}" --body ""
+          gh pr create --base master --head ${{ github.ref }} --title "[release] ${{ github.event.repository.name }} ${{ steps.get-version.outputs.version }}" --body "" --assignee "${{ github.actor }}"
           gh pr merge ${{ github.ref_name }} --rebase --auto
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
