@@ -16,10 +16,10 @@ on:
       - 'closed'
 jobs:
   create-pr:
-    uses: baltech-ag/ci-scripts/.github/workflows/release-actions-create_pr.yml@master
+    uses: baltech-ag/ci-scripts/.github/workflows/release-actions-create-pr.yml@master
     secrets: inherit
   create-tag:
-    uses: baltech-ag/ci-scripts/.github/workflows/release-actions-create_tag.yml@master
+    uses: baltech-ag/ci-scripts/.github/workflows/release-actions-create-tag.yml@master
     secrets: inherit
   deploy-build:
     uses: ./.github/workflows/repo-release-actions-deploy.yml
