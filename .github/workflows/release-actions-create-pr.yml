@@ -10,7 +10,7 @@ jobs:
   create-pr:
     name: Create PR
     runs-on: ubuntu-22.04
-    if: ${{ github.event_name == 'push' && contains(fromJson('["release-major", "release-minor", "release-patch"]'), github.head_ref) && !startsWith(github.event.head_commit.message, '[release]') }}
+    if: ${{ github.event_name == 'push' && contains(fromJson('["release-major", "release-minor", "release-patch"]'), github.ref_name) && startsWith(github.event.head_commit.message, '[release]') == 'false' }}
     steps:
       - name: Generate a token
         id: generate-token
