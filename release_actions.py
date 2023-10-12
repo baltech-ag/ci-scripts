@@ -50,10 +50,11 @@ def prepare_next_version(args: Namespace) -> None:
     version = _VERSION_PATH.read_text().strip()
     next_version = increase_version(version, branch.removeprefix("release-"))
     _VERSION_PATH.write_text(next_version)
-    git("add", str(_VERSION_PATH.resolve()))
-    modified_files = tox("apply-version")
-    for modified_file in modified_files.split("\n"):
-        git("add", modified_file)
+    tox("apply-version")
+    # This ci-scripts repo is checked out at the root of the project for which
+    # we are creating a new release ($PROJECT_ROOT/ci-scripts/). When git-adding
+    # all files that were changed by apply-version, we need to exclude it.
+    git("add", "--all", "--", ":(exclude)ci-scripts/*")
     git("commit", "-m", f"[release] {project} {next_version}")
     git("push", "origin", branch)
 
