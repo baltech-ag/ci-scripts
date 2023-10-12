@@ -23,7 +23,7 @@ def git(*commands: str) -> str:
 
 
 def tox(*commands: str) -> str:
-    return check_output("tox", "--quiet", "--quiet", "--", *commands)
+    return check_output("tox", "--", *commands)
 
 
 def increase_version(version: str, mode: str) -> str:
