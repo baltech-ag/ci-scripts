@@ -54,9 +54,15 @@ jobs:
         id: get-version
         run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
       - name: Create PR for release branch
-        run: |
-          gh pr create --base master --head ${{ github.ref }} --title "[release] ${{ github.event.repository.name }} ${{ steps.get-version.outputs.version }}" --body "" --assignee "${{ github.actor }}"
-          gh pr merge ${{ github.ref_name }} --rebase --auto
+        run: gh pr create --base master --head ${{ github.ref }} --title "[release] ${{ github.event.repository.name }} ${{ steps.get-version.outputs.version }}" --body "" --assignee "${{ github.actor }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+      - name: Approve PR
+        run: gh pr review ${{ github.ref_name }} --approve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge PR
+        run: gh pr merge ${{ github.ref_name }} --rebase --auto
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Cleanup
