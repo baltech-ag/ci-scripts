@@ -50,11 +50,11 @@ jobs:
         env:
           CI_PROJECT_NAME: ${{ github.event.repository.name }}
           CI_BRANCH_NAME: ${{ github.ref_name }}
-      - name: Get version
-        id: get-version
-        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
       - name: Create PR for release branch
-        run: gh pr create --base master --head ${{ github.ref }} --title "[release] ${{ github.event.repository.name }} ${{ steps.get-version.outputs.version }}" --body "" --assignee "${{ github.actor }}"
+        run: |
+          BASE_BRANCH=$(python ci-scripts/release_actions.py print-base-branch)
+          PR_TITLE="[release] ${{ github.event.repository.name }} $(cat VERSION))"
+          gh pr create --base $BASE_BRANCH --head ${{ github.ref }} --title "$PR_TITLE"  --body "" --assignee "${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Approve PR
