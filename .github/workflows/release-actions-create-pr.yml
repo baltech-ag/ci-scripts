@@ -55,7 +55,7 @@ jobs:
       - name: Create PR for release branch
         run: |
           BASE_BRANCH=$(python ci-scripts/release_actions.py print-base-branch)
-          PR_TITLE="[release] ${{ github.event.repository.name }} $(cat VERSION))"
+          PR_TITLE="[release] ${{ github.event.repository.name }} $(cat VERSION)"
           gh pr create --base $BASE_BRANCH --head ${{ github.ref }} --title "$PR_TITLE"  --body "" --assignee "${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
