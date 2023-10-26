@@ -11,6 +11,7 @@ from pathlib import Path
 _ROOT_PATH = Path(__file__).parent.parent
 _VERSION_PATH = (_ROOT_PATH / "VERSION")
 _ZERO_PAD_PATTERN = re.compile(r"0\d")
+_RELEASE_BRANCHES = ("release-major", "release-minor", "release-patch")
 
 
 def check_output(*commands: str) -> str:
@@ -43,10 +44,26 @@ def increase_version(version: str, mode: str) -> str:
         return f"{next_parts[0]}.{next_parts[1]}.{next_parts[2]}"
 
 
+def print_base_branch(args: Namespace) -> None:
+    base_branches = git("branch", '--format=%(refname:short)',
+                        "--contains", "HEAD").split("\n")
+    assert len(set(_RELEASE_BRANCHES) & set(base_branches)) == 1, \
+        (f"No release branch ({', '.join(_RELEASE_BRANCHES)}) found that "
+         f"points to HEAD. Branches pointing to HEAD: "
+         f"{', '.join(base_branches)}")
+    for branch in base_branches:
+        if branch == "master" or branch.startswith("v"):
+            print(branch, end="")
+            break
+    else:
+        raise ValueError(f"Could not find base branch ('master' or 'v*') in "
+                         f"possible branches: {', '.join(base_branches)}")
+
+
 def prepare_next_version(args: Namespace) -> None:
     project = os.environ['CI_PROJECT_NAME']
     branch = os.environ['CI_BRANCH_NAME']
-    assert branch in ("release-major", "release-minor", "release-patch")
+    assert branch in _RELEASE_BRANCHES
     version = _VERSION_PATH.read_text().strip()
     next_version = increase_version(version, branch.removeprefix("release-"))
     _VERSION_PATH.write_text(next_version)
@@ -71,6 +88,9 @@ def create_release_branch(args: Namespace) -> None:
 def main() -> None:
     parser = ArgumentParser("Release Actions")
     subparsers = parser.add_subparsers(required=True)
+
+    print_base_branch_parser = subparsers.add_parser("print-base-branch")
+    print_base_branch_parser.set_defaults(func=print_base_branch)
 
     prepare_next_version_parser = subparsers.add_parser("prepare-next-version")
     prepare_next_version_parser.set_defaults(func=prepare_next_version)

@@ -1,4 +1,4 @@
-# Version: 2023-10-05
+# Version: 2023-10-26
 # This is an organization workflow, it should not be edited!
 # The original source is in the baltech-ag/ci-scripts repository in the templates folder
 # https://baltech-wiki.atlassian.net/wiki/spaces/THIR/pages/257785857/GitHub#GitHub-Workflows-f%C3%BCr-Releasemanagement-einrichten
@@ -12,6 +12,7 @@ on:
   pull_request:
     branches:
       - 'master'
+      - 'v[0-9]+.[0-9]+'
     types:
       - 'closed'
 jobs:
