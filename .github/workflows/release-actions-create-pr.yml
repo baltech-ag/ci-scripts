@@ -25,6 +25,8 @@ jobs:
           git config --global user.email "${{ github.event.pusher.email }}"
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Checkout ci-scripts repository
         uses: actions/checkout@v4
         with:

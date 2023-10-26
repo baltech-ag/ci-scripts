@@ -45,8 +45,11 @@ def increase_version(version: str, mode: str) -> str:
 
 
 def print_base_branch(args: Namespace) -> None:
-    base_branches = git("branch", '--format=%(refname:short)',
-                        "--contains", "HEAD").split("\n")
+    remote_base_branches = git("branch", '--remote',
+                               "--contains", "HEAD",
+                               '--format=%(refname:short)').split("\n")
+    base_branches = [branch.removeprefix("origin/") for branch
+                     in remote_base_branches]
     assert len(set(_RELEASE_BRANCHES) & set(base_branches)) == 1, \
         (f"No release branch ({', '.join(_RELEASE_BRANCHES)}) found that "
          f"points to HEAD. Branches pointing to HEAD: "
