@@ -45,8 +45,10 @@ def increase_version(version: str, mode: str) -> str:
 
 
 def print_base_branch(args: Namespace) -> None:
+    # HEAD points to the commit that updated the VERSION file a moment ago.
+    # HEAD~1 (previous commit) must be used to determine the base branch.
     remote_base_branches = git("branch", '--remote',
-                               "--contains", "HEAD",
+                               "--contains", "HEAD~1",
                                '--format=%(refname:short)').split("\n")
     base_branches = [branch.removeprefix("origin/") for branch
                      in remote_base_branches]
