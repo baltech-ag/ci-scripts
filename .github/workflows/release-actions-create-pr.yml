@@ -12,6 +12,14 @@ jobs:
     runs-on: ubuntu-22.04
     if: ${{ github.event_name == 'push' && contains(fromJson('["release-major", "release-minor", "release-patch"]'), github.ref_name) && !startsWith(github.event.head_commit.message, '[release]') }}
     steps:
+      - name: Check for latest template version
+        run: |
+          set expectedHash="${{ hashFiles('./ci-scripts/templates/org-release-actions.yml') }}"
+          set actualHash="${{ hashFiles('./.github/workflows/org-release-actions.yml') }}"
+          if [[ "$expectedHash" != "$actualHash" ]]; then
+            echo "::error::Workflow org-release-actions.yml is outdated. Use the latest version from ci-scripts/templates in this project"
+            exit 1
+          fi
       - name: Generate a token
         id: generate-token
         uses: actions/create-github-app-token@v1
