@@ -6,10 +6,14 @@ on:
         type: string
         required: false
         default: master
+      runs-on:
+        type: string
+        required: false
+        default: "['ubuntu-22.04']"
 jobs:
   create-pr:
     name: Create PR
-    runs-on: ubuntu-22.04
+    runs-on: ${{ fromJson(inputs.runs-on) }}
     if: ${{ github.event_name == 'push' && contains(fromJson('["release-major", "release-minor", "release-patch"]'), github.ref_name) && !startsWith(github.event.head_commit.message, '[release]') }}
     steps:
       - name: Check for latest template version
@@ -18,7 +22,6 @@ jobs:
           set actualHash="${{ hashFiles('./.github/workflows/org-release-actions.yml') }}"
           if [[ "$expectedHash" != "$actualHash" ]]; then
             echo "::error::Workflow org-release-actions.yml is outdated. Use the latest version from ci-scripts/templates in this project"
-            exit 1
           fi
       - name: Generate a token
         id: generate-token
@@ -55,9 +58,6 @@ jobs:
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
-      - name: Recreate tox env
-        if: steps.tox-cache.outputs.cache-hit != 'true'
-        run: tox --recreate
       - name: Update version
         run: python ci-scripts/release_actions.py prepare-next-version
         env:
