@@ -24,7 +24,7 @@ def git(*commands: str) -> str:
 
 
 def tox(*commands: str) -> str:
-    return check_output("tox", "--", *commands)
+    return check_output("tox", "-v", "-v", "--", *commands)
 
 
 def increase_version(version: str, mode: str) -> str:
@@ -71,6 +71,7 @@ def prepare_next_version(args: Namespace) -> None:
     assert branch in _RELEASE_BRANCHES
     version = _VERSION_PATH.read_text().strip()
     next_version = increase_version(version, branch.removeprefix("release-"))
+    print(f"Increasing version in {_VERSION_PATH} to {next_version}")
     _VERSION_PATH.write_text(next_version)
     tox("apply-version")
     # This ci-scripts repo is checked out at the root of the project for which
