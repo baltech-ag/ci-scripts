@@ -14,8 +14,8 @@ jobs:
     steps:
       - name: Check for latest template version
         run: |
-          set expectedHash="${{ hashFiles('./ci-scripts/templates/org-release-actions.yml') }}"
-          set actualHash="${{ hashFiles('./.github/workflows/org-release-actions.yml') }}"
+          expectedHash="${{ hashFiles('ci-scripts/templates/org-release-actions.yml') }}"
+          actualHash="${{ hashFiles('.github/workflows/org-release-actions.yml') }}"
           if [[ "$expectedHash" != "$actualHash" ]]; then
             echo "::error::Workflow org-release-actions.yml is outdated. Use the latest version from ci-scripts/templates in this project"
             exit 1
