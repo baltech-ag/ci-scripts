@@ -82,15 +82,6 @@ def prepare_next_version(args: Namespace) -> None:
     git("push", "origin", branch)
 
 
-def create_release_branch(args: Namespace) -> None:
-    version = _VERSION_PATH.read_text().strip()
-    major_minor, patch = version.rsplit(".", 1)
-    if int(patch) == 0:
-        branch_name = "v" + str(major_minor)
-        git("branch", branch_name)
-        git("push", "origin", branch_name)
-
-
 def main() -> None:
     parser = ArgumentParser("Release Actions")
     subparsers = parser.add_subparsers(required=True)
@@ -100,9 +91,6 @@ def main() -> None:
 
     prepare_next_version_parser = subparsers.add_parser("prepare-next-version")
     prepare_next_version_parser.set_defaults(func=prepare_next_version)
-
-    create_release_branch_parser = subparsers.add_parser("create-release-branch")
-    create_release_branch_parser.set_defaults(func=create_release_branch)
 
     args = parser.parse_args()
     args.func(args)

@@ -6,10 +6,6 @@ on:
         type: string
         required: false
         default: master
-      create-release-branch:
-        type: boolean
-        required: false
-        default: true
 jobs:
   create-tag:
     name: Create tag
@@ -49,9 +45,6 @@ jobs:
         run: |
           git tag v${{ steps.version.outputs.version }}
           git push origin v${{ steps.version.outputs.version }}
-      - name: Create release branch
-        if: inputs.create-release-branch
-        run: python ci-scripts/release_actions.py create-release-branch
       - name: Cleanup
         if: always()
         run: rm -rf ci-scripts
