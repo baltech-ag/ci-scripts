@@ -3,9 +3,8 @@
 import os
 import io
 import json
-from collections import defaultdict
 
-from common import retrieve_commits, parse_subject, parse_issues
+from common import retrieve_commits, parse_subject, group_by_issue
 
 
 JIRA_URL = 'JIRA_URL'
@@ -17,15 +16,6 @@ CUR_COMMIT = 'CI_COMMIT_SHA'
 BRANCH_NAME = 'CI_COMMIT_REF_NAME'
 PROJECT_NAME = 'CI_PROJECT_NAME'
 PROJECT_DIR = 'CI_PROJECT_DIR'
-
-
-def group_by_issue(commits):
-    affected_issues = defaultdict(list)
-    for commit in commits:
-        commit_msg = f'{commit.subject}\n{commit.body}'
-        for issue in parse_issues(commit_msg):
-            affected_issues[issue].append(commit)
-    return dict(affected_issues)
 
 
 def convert_to_comment(commits, repo_url, branch_name, project_name):
