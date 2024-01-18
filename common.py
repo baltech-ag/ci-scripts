@@ -1,6 +1,6 @@
 import re
 import subprocess
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 
 ISSUE_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
@@ -26,6 +26,15 @@ Subject = namedtuple('subject', 'is_valid symbol text')
 def parse_issues(text):
     unique_issues = set(map(str.upper, ISSUE_REGEX.findall(text)))
     return [t for t in unique_issues if t not in ISSUE_BLACKLIST]
+
+
+def group_by_issue(commits):
+    affected_issues = defaultdict(list)
+    for commit in commits:
+        commit_msg = f'{commit.subject}\n{commit.body}'
+        for issue in parse_issues(commit_msg):
+            affected_issues[issue].append(commit)
+    return dict(affected_issues)
 
 
 def retrieve_commits(project_dir, start_commit, cur_commit='HEAD'):

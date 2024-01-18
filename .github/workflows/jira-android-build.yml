@@ -1,0 +1,53 @@
+on:
+  workflow_call:
+    inputs:
+      android-url:
+        description: 'URL to the build in the PlayStore'
+        type: string
+        required: true
+jobs:
+  jira-android-build:
+    name: Comment on new Android build
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v4
+        with:
+          repository: baltech-ag/ci-scripts
+          path: ci-scripts
+      - name: Set default env
+        run: |
+          echo "CI_NUM_COMMITS=$(echo '${{ toJson(github.event.commits) }}' | jq '. | length')" >> $GITHUB_ENV
+          echo "CI_COMMIT_SHA=${{ github.event.after }}" >> $GITHUB_ENV
+          echo "CI_COMMIT_REF_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Set env for pull request event
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          echo "CI_NUM_COMMITS=${{ github.event.pull_request.commits }}" >> $GITHUB_ENV
+          echo "CI_COMMIT_SHA=" >> $GITHUB_ENV
+          echo "CI_COMMIT_REF_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+      - name: Create QR code
+        uses: snow-actions/qrcode@v1.1.0
+        with:
+          text: '${{ inputs.android-url }}'
+          path: 'android_url.png'
+      - name: Build Comment
+        run: python ci-scripts/build_android_comment.py > jira_comment.json
+        env:
+          CI_AUTHOR_NAME: '${{ github.actor }}'
+          CI_REPO_URL: '${{ github.server_url }}/${{ github.repository }}'
+          CI_PROJECT_NAME: '${{ github.event.repository.name }}'
+          CI_PROJECT_DIR: '${{ github.workspace }}'
+          CI_ANDROID_URL: '${{ inputs.android-url }}'
+          CI_ANDROID_QRCODE: 'android_url.png'
+      - name: Post Comment
+        uses: ./ci-scripts/actions/jira-comment
+        with:
+          comment_file: jira_comment.json
+          user: ${{ secrets.JIRA_USER }}
+          password: ${{ secrets.JIRA_PASSWORD }}
+          url: ${{ secrets.JIRA_URL }}
