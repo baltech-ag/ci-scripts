@@ -20,11 +20,11 @@ ANDROID_QRCODE = 'CI_ANDROID_QRCODE'
 
 def convert_to_comment(author_name, project_name, repo_url, branch_name,
                        android_url, android_qrcode):
-    return (f"(*b) *{author_name}* prepared an "
+    return (f"(flag) *{author_name}* prepared an "
             f"[*Android* test build|{android_url}] "
             f"for [*{project_name}*|{repo_url}] "
             f"on branch *{branch_name}*:\n\n"
-            f"!{android_qrcode}|width=200!")
+            f"!{android_qrcode}|width=100!")
 
 
 def create_jira_comments():
