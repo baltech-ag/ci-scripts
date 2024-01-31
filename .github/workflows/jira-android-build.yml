@@ -5,6 +5,10 @@ on:
         description: 'URL to the build in the PlayStore'
         type: string
         required: true
+      qrcode-filename:
+        description: 'Name and extension of the QR code file'
+        type: string
+        default: 'android_url.png'
 jobs:
   jira-android-build:
     name: Comment on new Android build
@@ -34,7 +38,7 @@ jobs:
         uses: snow-actions/qrcode@v1.1.0
         with:
           text: '${{ inputs.android-url }}'
-          path: 'android_url.png'
+          path: '${{ inputs.qrcode-filename }}'
       - name: Build Comment
         run: python ci-scripts/build_android_comment.py > jira_comment.json
         env:
@@ -43,7 +47,7 @@ jobs:
           CI_PROJECT_NAME: '${{ github.event.repository.name }}'
           CI_PROJECT_DIR: '${{ github.workspace }}'
           CI_ANDROID_URL: '${{ inputs.android-url }}'
-          CI_ANDROID_QRCODE: 'android_url.png'
+          CI_ANDROID_QRCODE: '${{ inputs.qrcode-filename }}'
       - name: Post Comment
         uses: ./ci-scripts/actions/jira-comment
         with:
