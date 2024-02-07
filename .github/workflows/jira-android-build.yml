@@ -25,8 +25,13 @@ jobs:
           path: ci-scripts
       - name: Set default env
         run: |
-          echo "${{ toJson(github.event.commits) }}" | sed "s/'//g" > commits.txt
-          echo "CI_NUM_COMMITS=$(cat commits.txt | jq '. | length')" >> $GITHUB_ENV
+          commits=$(
+          cat <<"EOF"
+          ${{ toJson(github.event.commits) }}
+          EOF
+          )
+          printf -v commits %b "$commits"
+          echo "CI_NUM_COMMITS=$(echo $commits | jq '. | length')" >> $GITHUB_ENV
           echo "CI_COMMIT_SHA=${{ github.event.after }}" >> $GITHUB_ENV
           echo "CI_COMMIT_REF_NAME=${{ github.ref_name }}" >> $GITHUB_ENV
       - name: Set env for pull request event
