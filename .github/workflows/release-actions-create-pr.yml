@@ -42,7 +42,7 @@ jobs:
           ref: ${{ inputs.ci-scripts-ref }}
           path: ci-scripts
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
       - name: Install tox
@@ -51,7 +51,7 @@ jobs:
           python -m pip install tox==3.28.0
       - name: Restore tox environment from cache
         id: tox-cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
