@@ -57,7 +57,7 @@ jobs:
           key: ${{ runner.os }}-tox-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
       - name: Recreate tox environment
         if: steps.tox-cache.outputs.cache-hit != 'true'
-        run: tox --recreate
+        run: tox --recreate --notest
       - name: Update version
         run: python ci-scripts/release_actions.py prepare-next-version
         env:
