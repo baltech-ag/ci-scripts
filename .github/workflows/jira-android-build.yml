@@ -9,6 +9,10 @@ on:
         description: 'Name and extension of the QR code file'
         type: string
         default: 'android_url.png'
+      jira-ticket-id:
+        description: 'If provided, ticket IDs found in commit messages are ignored'
+        type: string
+        default: ''
 jobs:
   jira-android-build:
     name: Comment on new Android build
@@ -52,6 +56,7 @@ jobs:
           CI_REPO_URL: '${{ github.server_url }}/${{ github.repository }}'
           CI_PROJECT_NAME: '${{ github.event.repository.name }}'
           CI_PROJECT_DIR: '${{ github.workspace }}'
+          CI_JIRA_TICKET_ID: '${{ inputs.jira-ticket-id }}'
           CI_ANDROID_URL: '${{ inputs.android-url }}'
           CI_ANDROID_QRCODE: '${{ inputs.qrcode-filename }}'
       - name: Post Comment
