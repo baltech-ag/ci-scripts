@@ -4,11 +4,12 @@ from collections import defaultdict, namedtuple
 
 
 ISSUE_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
-ISSUE_BLACKLIST = (
+ISSUE_REGEX_BLACKLIST = (
     "RS-232",
     "UTF-8",
     "UTF-16",
 )
+_ISSUE_COMPILED_REGEX_BLACKLIST = [re.compile(f"^{pattern}$") for pattern in ISSUE_REGEX_BLACKLIST]
 
 COMMITTYPES = {
     'feature': '(+)',
@@ -25,7 +26,7 @@ Subject = namedtuple('subject', 'is_valid symbol text')
 
 def parse_issues(text):
     unique_issues = set(map(str.upper, ISSUE_REGEX.findall(text)))
-    return [t for t in unique_issues if t not in ISSUE_BLACKLIST]
+    return [t for t in unique_issues if not any(pattern.match(t) for pattern in _ISSUE_COMPILED_REGEX_BLACKLIST)]
 
 
 def group_by_issue(commits):
