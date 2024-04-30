@@ -8,6 +8,7 @@ ISSUE_REGEX_BLACKLIST = (
     "RS-232",
     "UTF-8",
     "UTF-16",
+    "CVE-\d+"
 )
 _ISSUE_COMPILED_REGEX_BLACKLIST = [re.compile(f"^{pattern}$") for pattern in ISSUE_REGEX_BLACKLIST]
 
