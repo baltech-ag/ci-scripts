@@ -1,33 +1,35 @@
 #!/usr/bin/env python3
 
-import os
 import re
 import subprocess
 
 from argparse import ArgumentParser, Namespace 
 from pathlib import Path
+from typing import Literal, NamedTuple, get_args as get_type_args
 
 
-_ROOT_PATH = Path(__file__).parent.parent
-_VERSION_PATH = (_ROOT_PATH / "VERSION")
+ReleaseMode = Literal["major", "minor", "patch"]
+EventName = Literal["push", "create", "pull_request"]
+
 _ZERO_PAD_PATTERN = re.compile(r"0\d")
-_RELEASE_BRANCHES = ("release-major", "release-minor", "release-patch")
+_RELEASE_MODES = list(get_type_args(ReleaseMode))
+_RELEASE_BRANCH_PATTERN = re.compile(rf"^release-(?P<mode>{'|'.join(_RELEASE_MODES)})(-(?P<project>\d\d\d\d))?$")
 
 
-def check_output(*commands: str) -> str:
+class ReleaseActionsError(Exception):
+    pass
+
+
+def _check_output(*commands: str) -> str:
     output = subprocess.check_output(commands).decode("utf-8")
     return output.strip() if output else ""
 
 
-def git(*commands: str) -> str:
-    return check_output("git", *commands)
+def _git(*commands: str) -> str:
+    return _check_output("git", *commands)
 
 
-def tox(*commands: str) -> str:
-    return check_output("tox", "-v", "-v", "--", *commands)
-
-
-def increase_version(version: str, mode: str) -> str:
+def _increase_version(version: str, mode: ReleaseMode) -> str:
     parts = version.split(".")
     if mode == "major":
         next_parts = [int(parts[0]) + 1, 0, 0]
@@ -36,61 +38,142 @@ def increase_version(version: str, mode: str) -> str:
     elif mode == "patch":
         next_parts = [int(parts[0]), int(parts[1]), int(parts[2]) + 1]
     else:
-        raise NotImplementedError(f"Unexpected mode '{mode}', expected one of "
-                                  f"major|minor|patch")
+        raise ReleaseActionsError(f"Unexpected mode '{mode}', expected one of "
+                                  f"{'|'.join(_RELEASE_MODES)}")
     if any(_ZERO_PAD_PATTERN.match(parts[part]) for part in (1, 2)):
         return f"{next_parts[0]}.{next_parts[1]:02}.{next_parts[2]:02}"
     else:
         return f"{next_parts[0]}.{next_parts[1]}.{next_parts[2]}"
 
 
-def print_base_branch(args: Namespace) -> None:
+def _is_valid_release_branch(branch_name: str) -> bool:
+    return bool(_RELEASE_BRANCH_PATTERN.match(branch_name))
+
+
+def _get_base_branch() -> str:
     # HEAD points to the commit that updated the VERSION file a moment ago.
     # HEAD~1 (previous commit) must be used to determine the base branch.
-    remote_base_branches = git("branch", '--remote',
-                               "--contains", "HEAD~1",
-                               '--format=%(refname:short)').split("\n")
-    base_branches = [branch.removeprefix("origin/") for branch
-                     in remote_base_branches]
-    assert len(set(_RELEASE_BRANCHES) & set(base_branches)) == 1, \
-        (f"No release branch ({', '.join(_RELEASE_BRANCHES)}) found that "
-         f"points to HEAD. Branches pointing to HEAD: "
-         f"{', '.join(base_branches)}")
+    remote_base_branches = _git(
+        "branch", '--remote',
+        "--contains", "HEAD",
+        '--format=%(refname:short)'
+    ).split("\n")
+    base_branches = [branch.removeprefix("origin/") for branch in remote_base_branches]
+    release_branches = set(
+        branch
+        for branch in base_branches
+        if _is_valid_release_branch(branch)
+    )
+    assert len(release_branches) == 1, \
+        ("No release branch found that points to HEAD. "
+         f"Branches pointing to HEAD: {', '.join(base_branches)}")
     for branch in base_branches:
         if branch == "master" or branch.startswith("v"):
-            print(branch, end="")
-            break
+            return branch
     else:
-        raise ValueError(f"Could not find base branch ('master' or 'v*') in "
+        raise ReleaseActionsError(f"Could not find base branch ('master' or 'v*') in "
                          f"possible branches: {', '.join(base_branches)}")
 
 
-def prepare_next_version(args: Namespace) -> None:
-    project = os.environ['CI_PROJECT_NAME']
-    branch = os.environ['CI_BRANCH_NAME']
-    assert branch in _RELEASE_BRANCHES
-    version = _VERSION_PATH.read_text().strip()
-    next_version = increase_version(version, branch.removeprefix("release-"))
-    print(f"Increasing version in {_VERSION_PATH} to {next_version}")
-    _VERSION_PATH.write_text(next_version)
-    tox("apply-version")
-    # This ci-scripts repo is checked out at the root of the project for which
-    # we are creating a new release ($PROJECT_ROOT/ci-scripts/). When git-adding
-    # all files that were changed by apply-version, we need to exclude it.
-    git("add", "--all", "--", ":(exclude)ci-scripts/*")
-    git("commit", "-m", f"[release] {project} {next_version}")
-    git("push", "origin", branch)
+class ReleaseEvent(NamedTuple):
+    deploy_mode: Literal["development", "release"]
+    stage: Literal["branch-created", "pr-merged", "tag-created", "commit-pushed"]
+    sub_project_id: str | None
+    version: str
 
+
+def print_release_context(args: Namespace) -> None:
+    release_branch_pattern = "release-(?P<mode>[a-z]+)(-(?P<id>\d{4}))?"
+    version_tag_pattern = "refs/tags/v((?P<id>\d{4})-)?(\d{1,2}.\d{1,2}.\d{1,2})"
+
+    def _get_project_name(spid: str | None) -> str:
+        if not spid:
+            return args.repository_name
+
+        try:
+            return next(Path().glob(f"{sub_project_id}_*")).name
+        except StopIteration:
+            raise ReleaseActionsError(f"'{sub_project_id}' is not a valid project id in this repository!")
+
+
+    def _get_version_file(spid: str | None) -> Path:
+        if spid:
+            return Path(f"{_get_project_name(spid)}/VERSION")
+        return Path("VERSION")
+
+    def _get_current_version(spid: str | None) -> str:
+        versionfile = _get_version_file(spid)
+        if not versionfile.exists():
+            raise ReleaseActionsError(f"version file `{versionfile}` does not exists!")
+        return versionfile.read_text().strip()
+
+    # create release branch
+    if args.event == "create" and (match := re.match(rf"^refs/heads/{release_branch_pattern}$", args.ref)):
+        sub_project_id = match.group("id")
+        version = _increase_version(_get_current_version(sub_project_id), match.group("mode"))
+        event = ReleaseEvent(
+            deploy_mode="development",
+            stage="branch-created",
+            sub_project_id=sub_project_id,
+            version=version,
+        )
+
+    # merge release PR
+    elif args.event ==  "pull_request" and (match := re.match(rf"^{release_branch_pattern}$", args.ref)):
+        sub_project_id = match.group("id")
+        version = _get_current_version(sub_project_id)
+        event = ReleaseEvent(
+            deploy_mode="development",
+            stage="pr-merged",
+            sub_project_id=sub_project_id,
+            version=version,
+        )
+
+    # push version tag
+    elif args.event == "push" and (match:= re.match(rf"^{version_tag_pattern}$", args.ref)):
+        sub_project_id = match.group("id")
+        version = _get_current_version(sub_project_id)
+        event = ReleaseEvent(
+            deploy_mode="release",
+            stage="tag-created",
+            sub_project_id=sub_project_id,
+            version=version,
+        )
+
+    # commit during development
+    else:
+        event = ReleaseEvent(
+            deploy_mode="development",
+            stage="commit-pushed",
+            sub_project_id=None,
+            version=_get_current_version(spid=None),
+        )
+
+    print(f"release-stage={event.stage}")
+    print(f"deploy-mode={event.deploy_mode}")
+    print(f"project-name={_get_project_name(event.sub_project_id)}")
+    print(f"sub-project-id={event.sub_project_id or ''}")
+    print(f"version={event.version}")
+    print(f"version-file={_get_version_file(event.sub_project_id).absolute()}")
+
+
+    tag = f"v{event.sub_project_id}-{event.version}" if event.sub_project_id else f"v{event.version}"
+    print(f"tag={tag}")
+
+    base_branch = _get_base_branch() if event.stage == "branch-created" else ""
+    if event.sub_project_id and base_branch and not base_branch.startswith(event.sub_project_id):
+        raise ReleaseActionsError(f"cannot release project {event.sub_project_id} on branch {base_branch}")
+    print(f"base-branch={base_branch}")
 
 def main() -> None:
     parser = ArgumentParser("Release Actions")
     subparsers = parser.add_subparsers(required=True)
 
-    print_base_branch_parser = subparsers.add_parser("print-base-branch")
-    print_base_branch_parser.set_defaults(func=print_base_branch)
-
-    prepare_next_version_parser = subparsers.add_parser("prepare-next-version")
-    prepare_next_version_parser.set_defaults(func=prepare_next_version)
+    prepare_next_version_parser = subparsers.add_parser("print-release-context")
+    prepare_next_version_parser.set_defaults(func=print_release_context)
+    prepare_next_version_parser.add_argument("--event", choices=get_type_args(EventName), required=True)
+    prepare_next_version_parser.add_argument("--repository-name", type=str, required=True)
+    prepare_next_version_parser.add_argument("--ref", type=str, required=True)
 
     args = parser.parse_args()
     args.func(args)

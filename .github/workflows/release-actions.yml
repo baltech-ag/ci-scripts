@@ -1,0 +1,168 @@
+name: Release Actions - Setup
+on:
+  workflow_call:
+    inputs:
+      ci-scripts-ref:
+        type: string
+        required: false
+        default: master
+      check-template:
+        type: boolean
+        required: false
+        default: true
+    outputs:
+      release-stage:
+        description: "the current stage of the release process"
+        value: ${{ jobs.release-context.outputs.release-stage }}
+      deploy-mode:
+        description: "'release' or 'development'"
+        value: ${{ jobs.release-context.outputs.deploy-mode }}
+      project-name:
+        description: "project name"
+        value: ${{ jobs.release-context.outputs.project-name }}
+      sub-project-id:
+        description: "sub project id"
+        value: ${{ jobs.release-context.outputs.sub-project-id }}
+      version:
+        description: "the current project version"
+        value:  ${{ jobs.release-context.outputs.version }}
+      version-file:
+        description: "version file containing the current version"
+        value: ${{ jobs.release-context.outputs.version-file }}
+
+jobs:
+  release-context:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v4
+        with:
+          repository: baltech-ag/ci-scripts
+          ref: ${{ inputs.ci-scripts-ref }}
+          path: ci-scripts
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Build Release Context
+        id: context
+        shell: pwsh
+        run: |
+          echo '${{ toJSON(github) }}'  # prints github-context for debugging purposes
+          python ci-scripts/release_actions.py `
+            print-release-context  `
+            --event="${{ github.event_name }}" `
+            --ref="${{ github.head_ref || github.ref }}" `
+            --repository-name="${{ github.event.repository.name }}" `
+            | Out-File -FilePath $env:GITHUB_OUTPUT
+          Get-Content -Path $env:GITHUB_OUTPUT  # prints output variables for debugging purposes
+      - name: Check for latest template version
+        if: ${{ inputs.check-template && steps.context.output.release-stage == 'branch-created' }}
+        run: |
+          expectedHash="${{ hashFiles('ci-scripts/templates/org-release-actions.yml') }}"
+          actualHash="${{ hashFiles('.github/workflows/org-release-actions.yml') }}"
+          if [[ "$expectedHash" != "$actualHash" ]]; then
+            echo "::error::Workflow org-release-actions.yml is outdated."
+            echo "::error::Please replace '.github/workflows/org-release-actions.yml' in this repository with 'templates/org-release-actions.yml' from the ci-scripts repository.'
+            exit 1
+          fi
+    outputs:
+      release-stage: ${{ steps.context.outputs.release-stage }}
+      deploy-mode: ${{ steps.context.outputs.deploy-mode }}
+      project-name: ${{ steps.context.outputs.project-name }}
+      sub-project-id: ${{ steps.context.outputs.sub-project-id }}
+      version: ${{ steps.context.outputs.version }}
+      version-file: ${{ steps.context.outputs.version-file }}
+      tag: ${{ steps.context.outputs.tag }}
+      base-branch: ${{ steps.context.outputs.base-branch }}
+
+  create-pr:
+    name: Create PR
+    runs-on: ubuntu-24.04
+    needs: [release-context]
+    if: needs.release-context.outputs.release-stage == 'branch-created'
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          private-key: ${{ secrets.BALTECH_BOT_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Configure git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@github.com"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install tox
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox==3.28.0
+      - name: Restore tox environment from cache
+        id: tox-cache
+        uses: actions/cache@v4
+        with:
+          path: .tox
+          key: ${{ runner.os }}-tox-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
+      - name: Prepare next Version
+        run: |
+          echo "Increasing version in ${{ needs.release-context.outputs.version-file }} to ${{ needs.release-context.outputs.version }}"
+          echo "${{ needs.release-context.outputs.version }}" > ${{ needs.release-context.outputs.version-file }}
+          
+          if [[ -z "${{ needs.release-context.outputs.sub-project-id }}" ]]; then
+              tox -v -v -- apply-version --version="${{ needs.release-context.outputs.version }}"
+          else
+              tox -v -v -- apply-version --version="${{ needs.release-context.outputs.version }}" --sub-project="${{ needs.release-context.outputs.project-name }}"
+          fi
+          
+          git add --all
+          git commit -m"[release] ${{ needs.release-context.outputs.project-name }} ${{ needs.release-context.outputs.version }}"
+          git push origin ${{ github.ref_name }}
+      - name: Create PR for release branch
+        run: |
+          PR_TITLE="[release] ${{ needs.release-context.outputs.project-name }} ${{ needs.release-context.outputs.version }}"
+          gh pr create --base ${{ needs.release-context.outputs.base-branch }} --head ${{ github.ref }} --title "$PR_TITLE"  --body "" --assignee "${{ github.actor }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+      - name: Approve PR
+        run: gh pr review ${{ github.ref_name }} --approve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge PR
+        run: gh pr merge ${{ github.ref_name }} --rebase --auto
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+  create-tag:
+    name: Create tag
+    runs-on: ubuntu-24.04
+    needs: [release-context]
+    if: ${{ needs.release-context.outputs.release-stage == 'pr-merged' && github.event.pull_request.merged == true }}
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          private-key: ${{ secrets.BALTECH_BOT_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Configure git
+        run: |
+          git config user.name "${{ github.event.pusher.name }}"
+          git config user.email "${{ github.event.pusher.email }}"
+      - name: Create tag on release commit
+        run: |
+          git tag ${{ needs.release-context.outputs.tag }}
+          git push origin ${{ needs.release-context.outputs.tag }}
