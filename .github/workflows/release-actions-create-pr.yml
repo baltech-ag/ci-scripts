@@ -26,15 +26,15 @@ jobs:
         with:
           app-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
-      - name: Configure git
-        run: |
-          git config --global url.https://${{ steps.generate-token.outputs.token }}@github.com/.insteadOf https://github.com/
-          git config --global user.name "${{ github.event.pusher.name }}"
-          git config --global user.email "${{ github.event.pusher.email }}"
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Configure git
+        run: |
+          git config user.name "${{ github.event.pusher.name }}"
+          git config user.email "${{ github.event.pusher.email }}"
       - name: Checkout ci-scripts repository
         uses: actions/checkout@v4
         with:
