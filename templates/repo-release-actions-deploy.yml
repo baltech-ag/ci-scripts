@@ -4,7 +4,22 @@ name: Release Actions - Deploy build
 on:
   workflow_call:
     inputs:
+      release-stage: # one of branch-created|pr-merged|tag-pushed
+        type: string
+        required: true
       deploy-mode: # one of development|release
+        type: string
+        required: true
+      project-name:
+        type: string
+        required: true
+      sub-project-id:
+        type: string
+        required: false
+      version:
+        type: string
+        required: true
+      version-file:
         type: string
         required: true
 jobs:
