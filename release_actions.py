@@ -101,10 +101,12 @@ def print_release_context(args: Namespace) -> None:
             return Path(f"{_get_project_name(spid)}/VERSION")
         return Path("VERSION")
 
-    def _get_current_version(spid: str | None) -> str:
+    def _get_current_version(spid: str | None, *, required: bool = True) -> str:
         versionfile = _get_version_file(spid)
         if not versionfile.exists():
-            raise ReleaseActionsError(f"version file `{versionfile}` does not exists!")
+            if required:
+                raise ReleaseActionsError(f"version file `{versionfile}` does not exists!")
+            return ""
         return versionfile.read_text().strip()
 
     # create release branch
@@ -146,7 +148,7 @@ def print_release_context(args: Namespace) -> None:
             deploy_mode="development",
             stage="commit-pushed",
             sub_project_id=None,
-            version=_get_current_version(spid=None),
+            version=_get_current_version(spid=None, required=False),
         )
 
     print(f"release-stage={event.stage}")
