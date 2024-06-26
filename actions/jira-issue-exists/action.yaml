@@ -24,28 +24,17 @@ runs:
   using: composite
   steps:
     - id: check
-      shell: python
+      shell: bash
       run: |
-        import os
-        import base64
-        from urllib import request
-        from urllib.error import HTTPError
+        issue=`python "${{ github.action_path }}/../../jira.py" \
+          --base-url="${{ inputs.url }}" \
+          --username="${{ inputs.user }}" \
+          --password="${{ inputs.password }}" \
+          get-issue \
+          --issue="${{ inputs.issue }}"`
         
-        base64_auth = base64.b64encode('${{ inputs.user }}:${{ inputs.password }}'.encode())
-        req = request.Request(
-          '${{ inputs.url }}/rest/api/2/issue/${{ inputs.issue }}',
-          headers={
-            'Authorization': 'Basic ' + base64_auth.decode(),
-            'Content-Type': 'application/json',
-          },
-        )
-        try:
-          exists = request.urlopen(req).status == 200
-        except HTTPError as error:
-          if error.code == 404:
-            exists = False
-          else:
-            raise
-        
-        with open(os.environ['GITHUB_OUTPUT'], mode="a") as output:
-          print(f'exists={int(exists)}', file=output)
+        if [[ $issue ]]; then
+          echo "exists=1" >> $GITHUB_OUTPUT
+        else
+          echo "exists=0" >> $GITHUB_OUTPUT
+        fi
