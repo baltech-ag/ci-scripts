@@ -1,5 +1,6 @@
 #!python3
 # -*- coding: utf-8 -*-
+import datetime
 import json
 import os
 import sys
@@ -18,6 +19,15 @@ def _fail(msg: str) -> None:
 
 def _get_status_code(req: request.Request) -> int:
     return request.urlopen(req).status
+
+
+def _get_json(req: request.Request) -> Any | None:
+    try:
+        response = request.urlopen(req)
+    except HTTPError:
+        return None
+    else:
+        return json.loads(response.read())
 
 
 def _assert_ok_status(req: request.Request) -> None:
@@ -73,19 +83,32 @@ class Jira:
             )
         )
 
-    def get_issue(self, issue: str) -> dict[str, Any] | None:
-        try:
-            response = request.urlopen(
-                self._request(
-                    f"issue/{issue}",
-                    headers={"Content-Type": "application/json"},
-                )
-            )
-        except HTTPError:
-            return None
-        else:
-            return json.loads(response.read())
+    def get_issue(self, issue: str) -> Any | None:
+        return _get_json(self._request(f"issue/{issue}"))
 
+    def get_version(self, project: str, version: str) -> Any | None:
+        versions = _get_json(self._request(f"project/{project}/versions"))
+        if versions:
+            for version_data in versions:
+                if version_data.get("name") == version:
+                    return version_data
+
+    def release_version(self, project: str, version: str) -> None:
+        version_data = self.get_version(project, version)
+        if version_data is None:
+            _fail(f"version {version} in project {project} does not exist")
+
+        request.urlopen(
+            self._request(
+                f"version/{version_data['id']}",
+                method="PUT",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({
+                    "released": True,
+                    "releaseDate": datetime.date.today().strftime("%Y-%m-%d")
+                }).encode()
+            )
+        )
 
     def _request(
             self,
@@ -130,6 +153,16 @@ if __name__ == "__main__":
     get_issue_parser = subparsers.add_parser("get-issue")
     get_issue_parser.set_defaults(func=Jira.get_issue)
     get_issue_parser.add_argument("--issue", required=True)
+
+    get_version_parser = subparsers.add_parser("get-version")
+    get_version_parser.set_defaults(func=Jira.get_version)
+    get_version_parser.add_argument("--project", required=True)
+    get_version_parser.add_argument("--version", required=True)
+
+    release_version_parser = subparsers.add_parser("release-version")
+    release_version_parser.set_defaults(func=Jira.release_version)
+    release_version_parser.add_argument("--project", required=True)
+    release_version_parser.add_argument("--version", required=True)
 
     args = parser.parse_args().__dict__
 
