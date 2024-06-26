@@ -25,7 +25,7 @@ jobs:
       release-stage: ${{ needs.release-actions.outputs.release-stage }}
       deploy-mode: ${{ needs.release-actions.outputs.deploy-mode }}
       project-name: ${{ needs.release-actions.outputs.project-name }}
-      sub-sub-project-id: ${{ needs.release-actions.outputs.sub-project-id }}
+      sub-project-id: ${{ needs.release-actions.outputs.sub-project-id }}
       version: ${{ needs.release-actions.outputs.version }}
       version-file: ${{ needs.release-actions.outputs.version-file }}
     secrets: inherit
