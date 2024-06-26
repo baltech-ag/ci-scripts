@@ -20,9 +20,10 @@ runs:
   using: composite
   steps:
     - shell: bash
-      run: python "${{ github.action_path }}/../../jira_comment.py"
-      env:
-        JIRA_COMMENT_FILE: "${{ inputs.comment_file }}"
-        JIRA_URL: "${{ inputs.url }}"
-        JIRA_USER: "${{ inputs.user }}"
-        JIRA_PASSWORD: "${{ inputs.password }}"
+      run: |
+        python "${{ github.action_path }}/../../jira.py" \
+          --base-url="${{ inputs.url }}" \
+          --username="${{ inputs.user }}" \
+          --password="${{ inputs.password }}" \
+          add-comments \
+          --comments-file="${{ inputs.comment_file }}"
