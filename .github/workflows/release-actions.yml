@@ -53,9 +53,10 @@ jobs:
           echo '${{ toJSON(github) }}'  # prints github-context for debugging purposes
           python ci-scripts/release_actions.py `
             print-release-context  `
-            --event="${{ github.event_name }}" `
-            --ref="${{ github.head_ref || github.ref }}" `
-            --repository-name="${{ github.event.repository.name }}" `
+            --event='${{ github.event_name }}' `
+            --ref='${{ github.head_ref || github.ref }}' `
+            --repository-name='${{ github.event.repository.name }}' `
+            --jira-version-template='${{ vars.JIRA_VERSION_TEMPLATE }}' `
             | Out-File -FilePath $env:GITHUB_OUTPUT
           Get-Content -Path $env:GITHUB_OUTPUT  # prints output variables for debugging purposes
       - name: Check for latest template version
@@ -77,6 +78,8 @@ jobs:
       version-file: ${{ steps.context.outputs.version-file }}
       tag: ${{ steps.context.outputs.tag }}
       base-branch: ${{ steps.context.outputs.base-branch }}
+      jira-project: ${{ vars.JIRA_PROJECT }}
+      jira-version: ${{ steps.context.outputs.jira-version }}
 
   create-pr:
     name: Create PR
@@ -84,6 +87,20 @@ jobs:
     needs: [release-context]
     if: needs.release-context.outputs.release-stage == 'branch-created'
     steps:
+      - id: jira-version-exists
+        uses: baltech-ag/ci-scripts/actions/jira-version-exists@master
+        with:
+          project: ${{ needs.release-context.outputs.jira-project }}
+          version: ${{ needs.release-context.outputs.jira-version }}
+          user: ${{ vars.JIRA_USER }}
+          password: ${{ secrets.JIRA_PASSWORD }}
+          url: ${{ vars.JIRA_URL }}
+      - name: jira version required
+        if: ${{ steps.jira-version-exists.outputs.exists != '1' }}
+        run: |
+          echo ${{ steps.jira-version-exists.output.exists }}
+          echo ::error::Jira Version ${{ needs.release-context.outputs.jira-version }} does not exist in project ${{ needs.release-context.outputs.jira-project }}
+          exit 1
       - name: Generate a token
         id: generate-token
         uses: actions/create-github-app-token@v1
@@ -166,3 +183,10 @@ jobs:
         run: |
           git tag ${{ needs.release-context.outputs.tag }}
           git push origin ${{ needs.release-context.outputs.tag }}
+      - uses: baltech-ag/ci-scripts/actions/jira-release-version@master
+        with:
+          project: ${{ needs.release-context.outputs.jira-project }}
+          version: ${{ needs.release-context.outputs.jira-version }}
+          user: ${{ vars.JIRA_USER }}
+          password: ${{ secrets.JIRA_PASSWORD }}
+          url: ${{ vars.JIRA_URL }}
