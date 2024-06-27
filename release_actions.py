@@ -5,6 +5,7 @@ import subprocess
 
 from argparse import ArgumentParser, Namespace 
 from pathlib import Path
+from string import Template
 from typing import Literal, NamedTuple, get_args as get_type_args
 
 
@@ -167,6 +168,12 @@ def print_release_context(args: Namespace) -> None:
         raise ReleaseActionsError(f"cannot release project {event.sub_project_id} on branch {base_branch}")
     print(f"base-branch={base_branch}")
 
+    if args.jira_version_template:
+        jira_version = Template(args.jira_version_template).substitute(projectid=event.sub_project_id, version=event.version)
+    else:
+        jira_version = tag
+    print(f"jira-version={jira_version}")
+
 def main() -> None:
     parser = ArgumentParser("Release Actions")
     subparsers = parser.add_subparsers(required=True)
@@ -176,6 +183,7 @@ def main() -> None:
     prepare_next_version_parser.add_argument("--event", choices=get_type_args(EventName), required=True)
     prepare_next_version_parser.add_argument("--repository-name", type=str, required=True)
     prepare_next_version_parser.add_argument("--ref", type=str, required=True)
+    prepare_next_version_parser.add_argument("--jira-version-template", type=str, required=True)
 
     args = parser.parse_args()
     args.func(args)
