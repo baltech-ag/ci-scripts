@@ -148,6 +148,7 @@ jobs:
           git commit -m"[release] ${{ needs.release-context.outputs.project-name }} ${{ needs.release-context.outputs.version }}"
           git push origin ${{ github.ref_name }}
       - name: Create PR for release branch
+        shell: bash
         run: |
           PR_TITLE="[release] ${{ needs.release-context.outputs.project-name }} ${{ needs.release-context.outputs.version }}"
           gh pr create --base ${{ needs.release-context.outputs.base-branch }} --head ${{ github.ref }} --title "$PR_TITLE"  --body "" --assignee "${{ github.actor }}"
