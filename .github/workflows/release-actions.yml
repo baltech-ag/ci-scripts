@@ -83,7 +83,7 @@ jobs:
 
   create-pr:
     name: Create PR
-    runs-on: ubuntu-20.04
+    runs-on: windows-2022
     needs: [release-context]
     if: needs.release-context.outputs.release-stage == 'branch-created'
     steps:
@@ -133,6 +133,7 @@ jobs:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
       - name: Prepare next Version
+        shell: bash
         run: |
           echo "Increasing version in ${{ needs.release-context.outputs.version-file }} to ${{ needs.release-context.outputs.version }}"
           echo "${{ needs.release-context.outputs.version }}" > ${{ needs.release-context.outputs.version-file }}
