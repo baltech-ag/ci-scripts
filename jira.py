@@ -21,7 +21,7 @@ def _get_status_code(req: request.Request) -> int:
     return request.urlopen(req).status
 
 
-def _get_json(req: request.Request) -> Any | None:
+def _get_json(req: request.Request) -> Any:
     try:
         response = request.urlopen(req)
     except HTTPError:
@@ -83,10 +83,10 @@ class Jira:
             )
         )
 
-    def get_issue(self, issue: str) -> Any | None:
+    def get_issue(self, issue: str) -> Any:
         return _get_json(self._request(f"issue/{issue}"))
 
-    def get_version(self, project: str, version: str) -> Any | None:
+    def get_version(self, project: str, version: str) -> Any:
         versions = _get_json(self._request(f"project/{project}/versions"))
         if versions:
             for version_data in versions:
