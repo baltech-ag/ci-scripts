@@ -157,8 +157,7 @@ def print_release_context(args: Namespace) -> None:
     print(f"project-name={_get_project_name(event.sub_project_id)}")
     print(f"sub-project-id={event.sub_project_id or ''}")
     print(f"version={event.version}")
-    print(f"version-file={_get_version_file(event.sub_project_id).absolute()}")
-
+    print(f"version-file={_get_version_file(event.sub_project_id)}")
 
     tag = f"v{event.sub_project_id}-{event.version}" if event.sub_project_id else f"v{event.version}"
     print(f"tag={tag}")
