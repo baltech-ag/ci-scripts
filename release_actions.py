@@ -164,7 +164,7 @@ def print_release_context(args: Namespace) -> None:
     print(f"tag={tag}")
 
     base_branch = _get_base_branch() if event.stage == "branch-created" else ""
-    if event.sub_project_id and base_branch and not base_branch.startswith(event.sub_project_id):
+    if event.sub_project_id and base_branch and event.sub_project_id not in base_branch:
         raise ReleaseActionsError(f"cannot release project {event.sub_project_id} on branch {base_branch}")
     print(f"base-branch={base_branch}")
 
