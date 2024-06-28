@@ -9,7 +9,7 @@ from base64 import b64encode
 from urllib import request
 from urllib.error import HTTPError
 from subprocess import check_call
-from typing import Any
+from typing import Any, Optional
 
 
 def _fail(msg: str) -> None:
@@ -113,9 +113,9 @@ class Jira:
     def _request(
             self,
             path: str,
-            method: str | None = None,
-            headers: dict[str, str] | None = None,
-            data: bytes | None = None
+            method: Optional[str] = None,
+            headers: Optional[dict[str, str]] = None,
+            data: Optional[bytes] = None
     ) -> request.Request:
         login = f"{self.username}:{self.password}"
         return request.Request(
