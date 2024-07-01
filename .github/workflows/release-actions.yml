@@ -115,7 +115,7 @@ jobs:
       - name: Configure git
         run: |
           git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@github.com"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -194,3 +194,43 @@ jobs:
           user: ${{ vars.JIRA_USER }}
           password: ${{ secrets.JIRA_PASSWORD }}
           url: ${{ vars.JIRA_URL }}
+
+  cherry-picks:
+    name: Create PRs with cherry-picks for version branches
+    runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          private-key: ${{ secrets.BALTECH_BOT_KEY }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+      - name: Configure git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
+      - name: Create PRs
+        run: |
+          BODY="""${{ github.event.pull_request.body }}"""
+          IFS='
+          ' # needed to loop over lines
+          for LINE in $BODY; do
+            if [[ $LINE =~ ^apply-to:' '*(.+)$ ]]; then 
+              TARGET=${BASH_REMATCH[1]}
+              BRANCH=${{ github.head_ref }}_$TARGET
+          
+              git checkout -b $BRANCH origin/$TARGET
+              git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs
+              git push --force origin HEAD
+          
+              gh pr create --base $TARGET --head $BRANCH --title "${{ github.event.pull_request.title }} ($TARGET)"  --body "" --assignee "${{ github.actor }}"
+            fi
+          done
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
