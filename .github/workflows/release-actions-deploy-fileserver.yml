@@ -24,6 +24,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ inputs.artifact-name }}
+          path: ./artifacts
       - name: Get Artifact Infos
         id: artifact
         run: |
