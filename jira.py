@@ -64,15 +64,9 @@ class Jira:
                 comment = comment.get('comment', '')
             else:
                 attachments = []
-            escaped_comment = comment \
-                .replace("\\", "\\\\") \
-                .replace('"', '\\"') \
-                .replace("\r\n", "\n") \
-                .replace("\n", "\\n")
-
             for attachment in attachments:
                 self.add_attachment(issue, attachment)
-            self.add_comment(issue, escaped_comment)
+            self.add_comment(issue, comment)
 
     def add_comment(self, issue: str, comment: str) -> None:
         _assert_ok_status(
