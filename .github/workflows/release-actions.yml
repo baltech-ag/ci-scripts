@@ -221,7 +221,7 @@ jobs:
           IFS='
           ' # needed to loop over lines
           for LINE in $BODY; do
-            if [[ $LINE =~ ^apply-to:' '*(.+)$ ]]; then 
+            if [[ $LINE =~ ^apply-to:[[:space:]]*([^[:space:]]+)[[:space:]]*$ ]]; then 
               TARGET=${BASH_REMATCH[1]}
               BRANCH=${{ github.head_ref }}_$TARGET
           
