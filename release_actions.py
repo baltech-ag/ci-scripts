@@ -152,15 +152,18 @@ def print_release_context(args: Namespace) -> None:
             version=_get_current_version(spid=None, required=False),
         )
 
-    version_tuple = tuple(map(int, event.version.split(".")))
-    if version_tuple[1:] == (0, 0):
-        release_mode: ReleaseMode = "major"
-    elif version_tuple[-1] == 0:
-        release_mode = "minor"
+    if event.version:
+        version_tuple = tuple(map(int, event.version.split(".")))
+        if version_tuple[1:] == (0, 0):
+            release_mode: ReleaseMode | None = "major"
+        elif version_tuple[-1] == 0:
+            release_mode = "minor"
+        else:
+            release_mode = "patch"
     else:
-        release_mode = "patch"
+        release_mode = None
 
-    print(f"release-mode={release_mode}")
+    print(f"release-mode={release_mode or ''}")
     print(f"release-stage={event.stage}")
     print(f"deploy-mode={event.deploy_mode}")
     print(f"project-name={_get_project_name(event.sub_project_id)}")
