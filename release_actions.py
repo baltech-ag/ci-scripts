@@ -85,6 +85,7 @@ class ReleaseEvent(NamedTuple):
 
 def print_release_context(args: Namespace) -> None:
     release_branch_pattern = "release-(?P<mode>[a-z]+)(-(?P<id>\d{4}))?"
+    release_ref_pattern = rf"^refs/heads/{release_branch_pattern}$"
     version_tag_pattern = "refs/tags/v((?P<id>\d{4})-)?(\d{1,2}.\d{1,2}.\d{1,2})"
 
     def _get_project_name(spid: str | None) -> str:
@@ -111,8 +112,8 @@ def print_release_context(args: Namespace) -> None:
         return versionfile.read_text().strip()
 
     # create release branch
-    if args.event == "create" and (match := re.match(rf"^refs/heads/{release_branch_pattern}$", args.ref)):
-        sub_project_id = match.group("id")
+    if args.event == "create" and (match := re.match(release_ref_pattern, args.ref)):
+        sub_project_id = match.group("id") or None
         version = _increase_version(_get_current_version(sub_project_id), match.group("mode"))
         event = ReleaseEvent(
             deploy_mode="development",
@@ -123,7 +124,7 @@ def print_release_context(args: Namespace) -> None:
 
     # merge release PR
     elif args.event ==  "pull_request" and (match := re.match(rf"^{release_branch_pattern}$", args.ref)):
-        sub_project_id = match.group("id")
+        sub_project_id = match.group("id") or None
         version = _get_current_version(sub_project_id)
         event = ReleaseEvent(
             deploy_mode="development",
@@ -134,7 +135,7 @@ def print_release_context(args: Namespace) -> None:
 
     # push version tag
     elif args.event == "push" and (match:= re.match(rf"^{version_tag_pattern}$", args.ref)):
-        sub_project_id = match.group("id")
+        sub_project_id = match.group("id") or None
         version = _get_current_version(sub_project_id)
         event = ReleaseEvent(
             deploy_mode="release",
@@ -145,11 +146,13 @@ def print_release_context(args: Namespace) -> None:
 
     # commit during development
     else:
+        match = re.match(release_ref_pattern, args.ref)
+        spid = (match.group("id") or None) if match else None
         event = ReleaseEvent(
             deploy_mode="development",
             stage="commit-pushed",
-            sub_project_id=None,
-            version=_get_current_version(spid=None, required=False),
+            sub_project_id=spid,
+            version=_get_current_version(spid=spid, required=match is not None),
         )
 
     if event.version:
