@@ -98,8 +98,8 @@ jobs:
       - name: jira version required
         if: ${{ steps.jira-version-exists.outputs.exists != '1' }}
         run: |
-          echo ${{ steps.jira-version-exists.output.exists }}
-          echo ::error::Jira Version ${{ needs.release-context.outputs.jira-version }} does not exist in project ${{ needs.release-context.outputs.jira-project }}
+          echo "${{ steps.jira-version-exists.output.exists }}"
+          echo "::error::Jira Version ${{ needs.release-context.outputs.jira-version }} does not exist in project ${{ needs.release-context.outputs.jira-project }}"
           exit 1
       - name: Generate a token
         id: generate-token
