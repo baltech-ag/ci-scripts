@@ -93,9 +93,9 @@ def print_release_context(args: Namespace) -> None:
             return args.repository_name
 
         try:
-            return next(Path().glob(f"{sub_project_id}_*")).name
+            return next(Path().glob(f"{spid}_*")).name
         except StopIteration:
-            raise ReleaseActionsError(f"'{sub_project_id}' is not a valid project id in this repository!")
+            raise ReleaseActionsError(f"'{spid}' is not a valid project id in this repository!")
 
 
     def _get_version_file(spid: str | None) -> Path:
