@@ -39,5 +39,6 @@ jobs:
           set "VERSION=${{ inputs.version }}"
           echo Source file: !SOURCE!
           set "DEST=%OneDriveCommercial%\F&E\Projekte\${{ inputs.projects-folder }}\${{ inputs.project-name }}\bin\${{ inputs.project-name }}_%VERSION:.=_%${{ steps.artifact.outputs.extension }}"
+          if not exist "!DEST!\.." mkdir "!DEST!\.."
           echo Destination file: !DEST!
           copy "!SOURCE!" "!DEST!"
