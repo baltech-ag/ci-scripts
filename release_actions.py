@@ -15,7 +15,7 @@ EventName = Literal["push", "create", "pull_request"]
 _ZERO_PAD_PATTERN = re.compile(r"0\d")
 _RELEASE_MODES = list(get_type_args(ReleaseMode))
 _RELEASE_BRANCH_PATTERN = re.compile(rf"^release-(?P<mode>{'|'.join(_RELEASE_MODES)})(-(?P<project>\d\d\d\d))?$")
-
+_MASTER_BRANCH = "master"
 
 class ReleaseActionsError(Exception):
     pass
@@ -69,7 +69,7 @@ def _get_base_branch() -> str:
         ("No release branch found that points to HEAD. "
          f"Branches pointing to HEAD: {', '.join(base_branches)}")
     for branch in base_branches:
-        if branch == "master" or branch.startswith("v"):
+        if branch == _MASTER_BRANCH or branch.startswith("v"):
             return branch
     else:
         raise ReleaseActionsError(f"Could not find base branch ('master' or 'v*') in "
@@ -152,6 +152,15 @@ def print_release_context(args: Namespace) -> None:
             version=_get_current_version(spid=None, required=False),
         )
 
+    version_tuple = tuple(map(int, event.version.split(".")))
+    if version_tuple[1:] == (0, 0):
+        release_mode: ReleaseMode = "major"
+    elif version_tuple[-1] == 0:
+        release_mode = "minor"
+    else:
+        release_mode = "patch"
+
+    print(f"release-mode={release_mode}")
     print(f"release-stage={event.stage}")
     print(f"deploy-mode={event.deploy_mode}")
     print(f"project-name={_get_project_name(event.sub_project_id)}")
@@ -162,10 +171,22 @@ def print_release_context(args: Namespace) -> None:
     tag = f"v{event.sub_project_id}-{event.version}" if event.sub_project_id else f"v{event.version}"
     print(f"tag={tag}")
 
-    base_branch = _get_base_branch() if event.stage == "branch-created" else ""
-    if event.sub_project_id and base_branch and event.sub_project_id not in base_branch:
-        raise ReleaseActionsError(f"cannot release project {event.sub_project_id} on branch {base_branch}")
-    print(f"base-branch={base_branch}")
+    if event.stage == "branch-created":
+        base_branch = _get_base_branch()
+        major_minor_version = event.version.rsplit(".", 1)[0]
+        if release_mode == "patch" and event.sub_project_id:
+            expected_base_branch = f"v{event.sub_project_id}-{major_minor_version}"
+        elif release_mode == "patch":
+            expected_base_branch = f"v{major_minor_version}"
+        else:
+            expected_base_branch = "master"
+
+        if base_branch != expected_base_branch:
+            raise ReleaseActionsError(f"expected release from branch `{expected_base_branch}`")
+
+        print(f"base-branch={base_branch}")
+    else:
+        print("base-branch=")
 
     if args.jira_version_template:
         jira_version = Template(args.jira_version_template).substitute(projectid=event.sub_project_id, version=event.version)
