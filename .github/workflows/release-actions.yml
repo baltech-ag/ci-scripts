@@ -50,7 +50,10 @@ jobs:
         id: context
         shell: pwsh
         run: |
-          echo '${{ toJSON(github) }}'  # prints github-context for debugging purposes
+          echo @'
+          ${{ toJSON(github) }}
+          '@  # prints github-context for debugging purposes
+          
           python ci-scripts/release_actions.py `
             print-release-context  `
             --event='${{ github.event_name }}' `
