@@ -52,28 +52,26 @@ def _is_valid_release_branch(branch_name: str) -> bool:
 
 
 def _get_base_branch() -> str:
-    # HEAD points to the commit that updated the VERSION file a moment ago.
-    # HEAD~1 (previous commit) must be used to determine the base branch.
-    remote_base_branches = _git(
-        "branch", '--remote',
-        "--contains", "HEAD",
-        '--format=%(refname:short)'
+    log_lines = _git(
+        "log",
+        "--first-parent",
+        "--format=%D",  # only print ref names
     ).split("\n")
-    base_branches = [branch.removeprefix("origin/") for branch in remote_base_branches]
-    release_branches = set(
-        branch
-        for branch in base_branches
-        if _is_valid_release_branch(branch)
-    )
-    assert len(release_branches) == 1, \
-        ("No release branch found that points to HEAD. "
-         f"Branches pointing to HEAD: {', '.join(base_branches)}")
-    for branch in base_branches:
-        if branch == _MASTER_BRANCH or branch.startswith("v"):
-            return branch
-    else:
-        raise ReleaseActionsError(f"Could not find base branch ('master' or 'v*') in "
-                         f"possible branches: {', '.join(base_branches)}")
+    for remote_ref_names in log_lines:
+        ref_names = [
+            ref_name.removeprefix("origin/")
+            for ref_name in remote_ref_names.replace("HEAD -> ", "").split(", ")
+        ]
+        if remote_ref_names.startswith("HEAD -> "):
+            if not any(_is_valid_release_branch(ref) for ref in ref_names):
+                raise ReleaseActionsError(
+                    "No release branch found that points to HEAD. "
+                    f"Branches pointing to HEAD: {', '.join(ref_names)}")
+        for ref in ref_names:
+            if ref == _MASTER_BRANCH or ref.startswith("v"):
+                return ref
+    raise ReleaseActionsError(f"Could not find base branch ('{_MASTER_BRANCH}' "
+                              f"or 'v*')")
 
 
 class ReleaseEvent(NamedTuple):
