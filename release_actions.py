@@ -3,7 +3,7 @@
 import re
 import subprocess
 
-from argparse import ArgumentParser, Namespace 
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from string import Template
 from typing import Literal, NamedTuple, get_args as get_type_args
@@ -16,6 +16,7 @@ _ZERO_PAD_PATTERN = re.compile(r"0\d")
 _RELEASE_MODES = list(get_type_args(ReleaseMode))
 _RELEASE_BRANCH_PATTERN = re.compile(rf"^release-(?P<mode>{'|'.join(_RELEASE_MODES)})(-(?P<project>\d\d\d\d))?$")
 _MASTER_BRANCH = "master"
+
 
 class ReleaseActionsError(Exception):
     pass
@@ -121,7 +122,7 @@ def print_release_context(args: Namespace) -> None:
         )
 
     # merge release PR
-    elif args.event ==  "pull_request" and (match := re.match(rf"^{release_branch_pattern}$", args.ref)):
+    elif args.event == "pull_request" and (match := re.match(rf"^{release_branch_pattern}$", args.ref)):
         sub_project_id = match.group("id") or None
         version = _get_current_version(sub_project_id)
         event = ReleaseEvent(
@@ -132,7 +133,7 @@ def print_release_context(args: Namespace) -> None:
         )
 
     # push version tag
-    elif args.event == "push" and (match:= re.match(rf"^{version_tag_pattern}$", args.ref)):
+    elif args.event == "push" and (match := re.match(rf"^{version_tag_pattern}$", args.ref)):
         sub_project_id = match.group("id") or None
         version = _get_current_version(sub_project_id)
         event = ReleaseEvent(
@@ -192,11 +193,30 @@ def print_release_context(args: Namespace) -> None:
     else:
         print("base-branch=")
 
-    if args.jira_version_template:
-        jira_version = Template(args.jira_version_template).substitute(projectid=event.sub_project_id, version=event.version)
-    else:
-        jira_version = tag
+    def _get_value_from_maybe_mapping(maybe_mapping: str, *, key: str, fallback: str) -> str:
+        """
+        WORKAROUND FOR PYTHONSW
+        since PythonSW has multiple projects with different Jira-Projects,
+        we need a way to define for each project a jira project and jira version template.
+
+        So we allow the following optional syntax for the env vars where these values are defined to map from a project-id to a value:
+        <PRJ_ID_1>=<VALUE>,<PRJ_ID_1>=<VALUE>
+        e.g.: 3007=TB,3510=NRM
+        """
+        try:
+            mapping = dict(map(str.strip, pair.split("=")) for pair in maybe_mapping.split(","))
+        except ValueError:
+            return maybe_mapping
+        else:
+            return mapping.get(key, fallback)
+
+    jira_project = _get_value_from_maybe_mapping(args.jira_project, key=event.sub_project_id, fallback="UNKNOWN")
+    print(f"jira-project={jira_project}")
+
+    jira_version_template = _get_value_from_maybe_mapping(args.jira_version_template, key=event.sub_project_id, fallback="$version")
+    jira_version = Template(jira_version_template).substitute(projectid=event.sub_project_id, version=event.version)
     print(f"jira-version={jira_version}")
+
 
 def main() -> None:
     parser = ArgumentParser("Release Actions")
@@ -207,6 +227,7 @@ def main() -> None:
     prepare_next_version_parser.add_argument("--event", choices=get_type_args(EventName), required=True)
     prepare_next_version_parser.add_argument("--repository-name", type=str, required=True)
     prepare_next_version_parser.add_argument("--ref", type=str, required=True)
+    prepare_next_version_parser.add_argument("--jira-project", type=str, required=True)
     prepare_next_version_parser.add_argument("--jira-version-template", type=str, required=True)
 
     args = parser.parse_args()

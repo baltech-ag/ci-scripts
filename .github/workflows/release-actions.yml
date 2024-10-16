@@ -59,6 +59,7 @@ jobs:
             --event='${{ github.event_name }}' `
             --ref='${{ github.head_ref || github.ref }}' `
             --repository-name='${{ github.event.repository.name }}' `
+            --jira-project='${{ vars.JIRA_PROJECT }}' `
             --jira-version-template='${{ vars.JIRA_VERSION_TEMPLATE }}' `
             | Out-File -FilePath $env:GITHUB_OUTPUT
           Get-Content -Path $env:GITHUB_OUTPUT  # prints output variables for debugging purposes
@@ -81,7 +82,7 @@ jobs:
       version-file: ${{ steps.context.outputs.version-file }}
       tag: ${{ steps.context.outputs.tag }}
       base-branch: ${{ steps.context.outputs.base-branch }}
-      jira-project: ${{ vars.JIRA_PROJECT }}
+      jira-project: ${{ steps.context.outputs.jira-project }}
       jira-version: ${{ steps.context.outputs.jira-version }}
 
   create-pr:
