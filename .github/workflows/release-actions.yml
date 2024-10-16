@@ -158,6 +158,9 @@ jobs:
           gh pr create --base ${{ needs.release-context.outputs.base-branch }} --head ${{ github.ref }} --title "$PR_TITLE"  --body "" --assignee "${{ github.actor }}"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+      - name: Delete Release-Branch
+        run: git push origin --delete ${{ github.ref_name  }}
+        if: failure()
       - name: Approve PR
         run: gh pr review ${{ github.ref_name }} --approve
         env:
