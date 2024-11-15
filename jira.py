@@ -18,7 +18,10 @@ def _fail(msg: str) -> None:
 
 
 def _get_status_code(req: request.Request) -> int:
-    return request.urlopen(req).status
+    try:
+        return request.urlopen(req).status
+    except HTTPError as e:
+        return e.status
 
 
 def _get_json(req: request.Request) -> Any:
@@ -92,7 +95,7 @@ class Jira:
         if version_data is None:
             _fail(f"version {version} in project {project} does not exist")
 
-        request.urlopen(
+        _assert_ok_status(
             self._request(
                 f"version/{version_data['id']}",
                 method="PUT",
