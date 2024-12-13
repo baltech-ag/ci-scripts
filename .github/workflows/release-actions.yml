@@ -233,10 +233,10 @@ jobs:
               BRANCH=${{ github.head_ref }}_$TARGET
           
               git checkout -b $BRANCH origin/$TARGET
-              git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs --empty=drop
+              git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs --empty=drop || draft_flag="--draft"
               git push --force origin HEAD
           
-              gh pr create --base $TARGET --head $BRANCH --title "${{ github.event.pull_request.title }} ($TARGET)"  --body "" --assignee "${{ github.actor }}"
+              gh pr create --base $TARGET --head $BRANCH --title "${{ github.event.pull_request.title }} ($TARGET)"  --body "" --assignee "${{ github.actor }}" $draft_flag
             fi
           done
         env:
