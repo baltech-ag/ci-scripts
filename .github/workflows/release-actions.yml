@@ -243,3 +243,33 @@ jobs:
           done
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+  closing-issues:
+    name: Closes JIRA issues mentioned in the PR body
+    runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
+    steps:
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v4
+        with:
+          repository: baltech-ag/ci-scripts
+          ref: ${{ inputs.ci-scripts-ref }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Close Issues
+        run: |
+          BODY='${{ github.event.pull_request.body }}'
+          IFS='
+          ' # needed to loop over lines
+          for LINE in $BODY; do
+            if [[ $LINE =~  closes:[[:space:]]([A-z]+-[0-9]+)[[:space:]]*$ ]]; then  
+              ISSUE=${BASE_REMATCH[1]}
+              python jira.py \
+                --base-url="${{ vars.JIRA_URL }}" \
+                --username="${{ vars.JIRA_USER }}" \
+                --password="${{ secrets.JIRA_PASSEORD }}" \
+                close-issue \
+                --issue=$ISSUE || echo "::error::could not close $ISSUE"
+            fi
+          done

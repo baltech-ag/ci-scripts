@@ -107,6 +107,24 @@ class Jira:
             )
         )
 
+    def close_issue(self, issue: str) -> None:
+        transitions = _get_json(self._request(f"issue/{issue}/transitions"))
+        close_transition = next((t for t in transitions.get("transitions", []) if t.get("name") == "Close"), None)
+        if close_transition is None:
+            _fail(f"issue {issue} does not have a close transition")
+
+        _assert_ok_status(
+            self._request(
+                f"issue/{issue}/transitions",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({
+                    "fields": {"resolution": {"name": "Done"}},
+                    "transition": {"id": close_transition["id"]},
+                }).encode()
+            )
+        )
+
     def _request(
             self,
             path: str,
@@ -160,6 +178,10 @@ if __name__ == "__main__":
     release_version_parser.set_defaults(func=Jira.release_version)
     release_version_parser.add_argument("--project", required=True)
     release_version_parser.add_argument("--version", required=True)
+
+    close_issue_parser = subparsers.add_parser("close-issue")
+    close_issue_parser.set_defaults(func=Jira.close_issue)
+    close_issue_parser.add_argument("--issue", required=True)
 
     args = parser.parse_args().__dict__
 
