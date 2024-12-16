@@ -232,7 +232,7 @@ jobs:
               TARGET=${BASH_REMATCH[1]}
               BRANCH=${{ github.head_ref }}_$TARGET
               
-              git ls-remote --exit-code --heads origin $TARGET || (git branch $TARGET ${TARGET}.00 && git push origin $TARGET)
+              git ls-remote --exit-code --heads origin $TARGET || (git branch $TARGET ${TARGET}.0 || git branch $TARGET ${TARGET}.00 && git push origin $TARGET)
               
               git checkout -b $BRANCH origin/$TARGET
               git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs --empty=drop || draft_flag="--draft"
