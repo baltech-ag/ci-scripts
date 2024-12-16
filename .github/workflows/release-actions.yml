@@ -268,7 +268,7 @@ jobs:
               python jira.py \
                 --base-url="${{ vars.JIRA_URL }}" \
                 --username="${{ vars.JIRA_USER }}" \
-                --password="${{ secrets.JIRA_PASSEORD }}" \
+                --password="${{ secrets.JIRA_PASSWORD }}" \
                 close-issue \
                 --issue=$ISSUE || echo "::error::could not close $ISSUE"
             fi
