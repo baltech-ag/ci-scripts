@@ -109,7 +109,10 @@ class Jira:
 
     def close_issue(self, issue: str) -> None:
         transitions = _get_json(self._request(f"issue/{issue}/transitions"))
-        close_transition = next((t for t in transitions.get("transitions", []) if t.get("name") == "Close"), None)
+        if transitions is None:
+            _fail(f"could not fetch available transitions")
+
+        close_transition = next((t for t in transitions.get("transitions", []) if t.get("to", {}).get("name") == "Closed"), None)
         if close_transition is None:
             _fail(f"issue {issue} does not have a close transition")
 
