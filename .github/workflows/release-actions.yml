@@ -263,8 +263,8 @@ jobs:
           IFS='
           ' # needed to loop over lines
           for LINE in $BODY; do
-            if [[ $LINE =~  closes:[[:space:]]([A-z]+-[0-9]+)[[:space:]]*$ ]]; then  
-              ISSUE=${BASE_REMATCH[1]}
+            if [[ $LINE =~  ^closes:[[:space:]]*([A-z]+-[0-9]+)[[:space:]]*$ ]]; then  
+              ISSUE=${BASH_REMATCH[1]}
               python jira.py \
                 --base-url="${{ vars.JIRA_URL }}" \
                 --username="${{ vars.JIRA_USER }}" \
