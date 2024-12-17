@@ -112,7 +112,7 @@ class Jira:
         if transitions is None:
             _fail(f"could not fetch available transitions")
 
-        close_transition = next((t for t in transitions.get("transitions", []) if t.get("to", {}).get("name") == "Closed"), None)
+        close_transition = next((t for t in transitions.get("transitions", []) if t.get("to", {}).get("name") == "Geschlossen"), None)
         if close_transition is None:
             _fail(f"issue {issue} does not have a close transition")
 
