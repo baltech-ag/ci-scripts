@@ -45,7 +45,7 @@ jobs:
           echo "CI_COMMIT_SHA=" >> $GITHUB_ENV
           echo "CI_COMMIT_REF_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
       - name: Create QR code
-        uses: snow-actions/qrcode@v1.1.0
+        uses: snow-actions/qrcode@v1.2.0
         with:
           text: '${{ inputs.android-url }}'
           path: '${{ inputs.qrcode-filename }}'
