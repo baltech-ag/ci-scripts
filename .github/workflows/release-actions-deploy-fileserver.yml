@@ -19,9 +19,6 @@ jobs:
     name: Deploy build to OneDrive
     runs-on: [self-hosted, windows, onedrive]
     steps:
-      - name: Clean Up
-        shell: pwsh
-        run: rm .\artifacts -r -force
       - name: Download artifact
         id: download-artifact
         uses: actions/download-artifact@v4
