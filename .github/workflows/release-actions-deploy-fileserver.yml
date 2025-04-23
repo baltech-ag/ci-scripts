@@ -14,6 +14,9 @@ on:
       version:
         type: string
         required: true
+      basepath:
+        type: string
+        required: false
 jobs:
   deploy-onedrive:
     name: Deploy build to OneDrive
@@ -25,20 +28,22 @@ jobs:
         with:
           name: ${{ inputs.artifact-name }}
           path: ./artifacts
-      - name: Get Artifact Infos
-        id: artifact
-        run: |
-          $artifact = (Get-ChildItem -Path "${{ steps.download-artifact.outputs.download-path }}")[0]
-          ("path=" + $artifact.FullName) | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          ("extension=" + $artifact.Extension) | Out-File -FilePath $env:GITHUB_OUTPUT -Append
       - name: Deploy
-        shell: cmd
+        shell: python
         run: |
-          setlocal EnableDelayedExpansion
-          set "SOURCE=${{ steps.artifact.outputs.path }}"
-          set "VERSION=${{ inputs.version }}"
-          echo Source file: !SOURCE!
-          set "DEST=%OneDriveCommercial%\F&E\Projekte\${{ inputs.projects-folder }}\${{ inputs.project-name }}\bin\${{ inputs.project-name }}_%VERSION:.=_%${{ steps.artifact.outputs.extension }}"
-          if not exist "!DEST!\.." mkdir "!DEST!\.."
-          echo Destination file: !DEST!
-          copy "!SOURCE!" "!DEST!"
+          import os
+          from pathlib import Path
+          
+          version = r"${{ inputs.version }}".replace(".", "_")
+          download_path = Path(r"${{ steps.download-artifact.outputs.download-path }}")
+          destination = Path(
+            r"${{ inputs.basepath }}" or os.environ["OneDriveCommercial"], 
+            r"F&E\Projekte\${{ inputs.projects-folder }}\${{ inputs.project-name }}\bin"
+          )
+          
+          for artifact in filter(lambda p: p.is_file(), download_path.glob("**/*")):
+            artifact_destination = destination / artifact.relative_to(download_path).with_stem(f"{artifact.stem}_{version}")
+            print(f"::notice::deploy {artifact_destination}")
+          
+            artifact_destination.parent.mkdir(exist_ok=True, parents=True)
+            artifact_destination.write_bytes(artifact.read_bytes())
