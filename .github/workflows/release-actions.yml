@@ -224,10 +224,8 @@ jobs:
           git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
       - name: Create PRs
         run: |
-          BODY='${{ github.event.pull_request.body }}'
-          IFS='
-          ' # needed to loop over lines
-          for LINE in $BODY; do
+          BODY="${{ github.event.pull_request.body }}"
+          while IFS= read -r LINE; do
             if [[ $LINE =~ ^apply-to:[[:space:]]*([^[:space:]]+)[[:space:]]*$ ]]; then 
               TARGET=${BASH_REMATCH[1]}
               BRANCH=${{ github.head_ref }}_$TARGET
@@ -240,7 +238,7 @@ jobs:
           
               gh pr create --base $TARGET --head $BRANCH --title "${{ github.event.pull_request.title }} ($TARGET)"  --body "" --assignee "${{ github.actor }}" $draft_flag
             fi
-          done
+          done <<< "$BODY"
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
 
@@ -259,11 +257,9 @@ jobs:
           python-version: "3.10"
       - name: Close Issues
         run: |
-          BODY='${{ github.event.pull_request.body }}'
-          IFS='
-          ' # needed to loop over lines
-          for LINE in $BODY; do
-            if [[ $LINE =~  ^closes:[[:space:]]*([A-z]+-[0-9]+)[[:space:]]*$ ]]; then  
+          BODY="${{ github.event.pull_request.body }}"
+          while IFS= read -r LINE; do
+            if [[ $LINE =~ ^closes:[[:space:]]*([A-Za-z]+-[0-9]+)[[:space:]]*$ ]]; then  
               ISSUE=${BASH_REMATCH[1]}
               python jira.py \
                 --base-url="${{ vars.JIRA_URL }}" \
@@ -272,4 +268,4 @@ jobs:
                 close-issue \
                 --issue=$ISSUE || echo "::error::could not close $ISSUE"
             fi
-          done
+          done <<< "$BODY"
