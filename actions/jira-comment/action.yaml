@@ -19,7 +19,17 @@ inputs:
 runs:
   using: composite
   steps:
+    - shell: powershell
+      if: runner.os == 'Windows'
+      run: |
+        python "${{ github.action_path }}/../../jira.py" `
+        --base-url="${{ inputs.url }}" `
+        --username="${{ inputs.user }}" `
+        --password="${{ inputs.password }}" `
+        add-comments `
+        --comments-file="${{ inputs.comment_file }}"
     - shell: bash
+      if: runner.os != 'Windows'
       run: |
         python "${{ github.action_path }}/../../jira.py" \
           --base-url="${{ inputs.url }}" \
