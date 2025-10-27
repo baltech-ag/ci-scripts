@@ -1,10 +1,16 @@
 on:
   workflow_call:
+    inputs:
+      if:
+        description: 'overwrites if condition for this action'
+        default: ${{ github.ref_protected || github.ref_name == 'master' }}
+        required: false
+        type: boolean
 jobs:
   jira-integration-push:
     name: Comment pushed commit messages
     runs-on: ubuntu-24.04
-    if: github.ref_protected || github.ref_name == 'master'
+    if: inputs.if
     steps:
       - name: Checkout
         uses: actions/checkout@v5
