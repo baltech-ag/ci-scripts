@@ -258,7 +258,6 @@ jobs:
           python-version: "3.10"
       - name: Close Issues
         run: |
-          BODY="${{ github.event.pull_request.body }}"
           while IFS= read -r LINE; do
             if [[ $LINE =~ ^closes:[[:space:]]*([A-Za-z]+-[0-9]+)[[:space:]]*$ ]]; then  
               ISSUE=${BASH_REMATCH[1]}
@@ -270,3 +269,5 @@ jobs:
                 --issue=$ISSUE || echo "::error::could not close $ISSUE"
             fi
           done <<< "$BODY"
+        env:
+          BODY: ${{ github.event.pull_request.body }}
