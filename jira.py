@@ -72,13 +72,15 @@ class Jira:
             self.add_comment(issue, comment)
 
     def add_comment(self, issue: str, comment: str) -> None:
-        _assert_ok_status(
-            self._request(
-                f"issue/{issue}/comment",
-                headers={"Content-Type": "application/json"},
-                data=json.dumps({"body": comment}).encode(),
-            )
+        req = self._request(
+            f"issue/{issue}/comment",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"body": comment}).encode(),
         )
+        if _get_status_code(req) == 404:
+            print(f"::warning::issue {issue} not found, skipping comment")
+            return
+        _assert_ok_status(req)
 
     def get_issue(self, issue: str) -> Any:
         return _get_json(self._request(f"issue/{issue}"))
