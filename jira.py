@@ -77,10 +77,13 @@ class Jira:
             headers={"Content-Type": "application/json"},
             data=json.dumps({"body": comment}).encode(),
         )
-        if _get_status_code(req) == 404:
+        status_code = _get_status_code(req)
+        if status_code == 404:
             print(f"::warning::issue {issue} not found, skipping comment")
             return
-        _assert_ok_status(req)
+        if 200 <= status_code < 300:
+            return
+        _fail(f"request `{req.full_url}` failed with status code {status_code}")
 
     def get_issue(self, issue: str) -> Any:
         return _get_json(self._request(f"issue/{issue}"))
