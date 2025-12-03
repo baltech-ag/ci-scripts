@@ -3,7 +3,7 @@ import subprocess
 from collections import defaultdict, namedtuple
 
 
-ISSUE_REGEX = re.compile(r'\b[A-Za-z]{2,4}-\d+\b')
+ISSUE_REGEX = re.compile(r'([A-Za-z]{2,4}-\d+)\S*')
 ISSUE_REGEX_BLACKLIST = (
     "RS-232",
     "UTF-8",
