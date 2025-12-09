@@ -229,13 +229,37 @@ jobs:
               TARGET=${BASH_REMATCH[1]}
               BRANCH=${{ github.head_ref }}_$TARGET
               
-              git ls-remote --exit-code --heads origin $TARGET || (git branch $TARGET ${TARGET}.0 || git branch $TARGET ${TARGET}.00 && git push origin $TARGET)
+              echo "::notice::apply-to: ${TARGET}"
+              git reset --hard \
+                || { echo "::error::git reset failed"; continue; }
               
-              git checkout -b $BRANCH origin/$TARGET
-              git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs --empty=drop || draft_flag="--draft"
-              git push --force origin HEAD
+              git ls-remote --exit-code --heads origin $TARGET \
+                || (git branch $TARGET ${TARGET}.0 \
+                || git branch $TARGET ${TARGET}.00 \
+                && git push origin $TARGET) \
+                || { echo "::error::Failed to create ${TARGET}"; continue; }
+              
+              git branch -D $BRANCH \
+                  && echo "branch $BRANCH existed" || echo "branch $BRANCH did not exist"
           
-              gh pr create --base $TARGET --head $BRANCH --title "$PR_TITLE ($TARGET)"  --body "" --assignee "${{ github.actor }}" $draft_flag
+              git checkout -b $BRANCH origin/$TARGET \
+                || { echo "::error::Failed to checkout ${BRANCH}"; continue; }
+          
+              git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs --empty=drop \
+                || draft_flag="--draft"
+              
+              git push --force origin HEAD \
+                || { echo "::error::Failed to push"; continue; }
+              
+              gh pr list --head "$BRANCH" --state open --json number -q length
+              EXISTING_PR_COUNT=$(gh pr list --head "$BRANCH" --state open --json number -q length)
+              echo "existing PRs: ${EXISTING_PR_COUNT}"
+              if [ "$EXISTING_PR_COUNT" -ne 0 ]; then
+                echo "::notice::PR already exists for $BRANCH"
+              else
+                gh pr create --base $TARGET --head $BRANCH --title "$PR_TITLE ($TARGET)"  --body "" --assignee "${{ github.actor }}" $draft_flag \
+                  || { echo "::error::creating PR failed"; continue;  }
+              fi
             fi
           done <<< "$PR_BODY"
         env:
