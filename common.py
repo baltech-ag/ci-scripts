@@ -41,10 +41,16 @@ def group_by_issue(commits):
 
 
 def retrieve_commits(project_dir, start_commit, cur_commit='HEAD'):
-    git_log_output = subprocess.check_output(
-        ['git', '-C', project_dir, 'log',
-         f'{start_commit}..{cur_commit}',
-         '--format=%H%x00%aN%x00%s%x00%b%x01']).decode()
+    try:
+        git_log_output = subprocess.check_output(
+            ['git', '-C', project_dir, 'log',
+             f'{start_commit}..{cur_commit}',
+             '--format=%H%x00%aN%x00%s%x00%b%x01']).decode()
+    except subprocess.CalledProcessError as e:
+        if e.returncode == 128:
+            print("::warn::could not retrieve commits")
+            return []
+        raise
     return [Commit(*log.strip().split('\x00'))
                for log in git_log_output.split('\x01') if log.strip()]
 
