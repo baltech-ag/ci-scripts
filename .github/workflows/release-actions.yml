@@ -224,33 +224,45 @@ jobs:
           git config user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
       - name: Create PRs
         run: |
+          failed_prs=0
           while IFS= read -r LINE; do
-            if [[ $LINE =~ ^apply-to:[[:space:]]*([^[:space:]]+)[[:space:]]*$ ]]; then 
+            if [[ $LINE =~ ^apply-to:[[:space:]]*([^[:space:]]+)[[:space:]]*$ ]]; then
               TARGET=${BASH_REMATCH[1]}
               BRANCH=${{ github.head_ref }}_$TARGET
-              
+              draft_flag=""
+
               echo "::notice::apply-to: ${TARGET}"
               git reset --hard \
-                || { echo "::error::git reset failed"; continue; }
-              
+                || { echo "::error::git reset failed"; ((failed_prs++)); continue; }
+
               git ls-remote --exit-code --heads origin $TARGET \
                 || (git branch $TARGET ${TARGET}.0 \
                 || git branch $TARGET ${TARGET}.00 \
                 && git push origin $TARGET) \
-                || { echo "::error::Failed to create ${TARGET}"; continue; }
-              
+                || { echo "::error::Failed to create ${TARGET}"; ((failed_prs++)); continue; }
+
               git branch -D $BRANCH \
                   && echo "branch $BRANCH existed" || echo "branch $BRANCH did not exist"
-          
+
               git checkout -b $BRANCH origin/$TARGET \
-                || { echo "::error::Failed to checkout ${BRANCH}"; continue; }
-          
-              git cherry-pick ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }} --strategy=ort --strategy-option=theirs --empty=drop \
-                || draft_flag="--draft"
-              
+                || { echo "::error::Failed to checkout ${BRANCH}"; ((failed_prs++)); continue; }
+
+              COMMITS=$(git rev-list --reverse ${{ github.sha }}~${{ github.event.pull_request.commits }}..${{ github.sha }})
+              for COMMIT in $COMMITS; do
+                COMMIT_MSG=$(git log -1 --format=%s $COMMIT)
+                if git cherry-pick $COMMIT --strategy=ort --strategy-option=theirs --empty=drop; then
+                  echo "Cherry-picked: $COMMIT_MSG"
+                else
+                  echo "::error::Conflict in commit: $COMMIT_MSG"
+                  draft_flag="--draft"
+                  git add -A
+                  git commit -m "[CONFLICTS] $COMMIT_MSG" || true
+                fi
+              done
+
               git push --force origin HEAD \
-                || { echo "::error::Failed to push"; continue; }
-              
+                || { echo "::error::Failed to push"; ((failed_prs++)); continue; }
+
               gh pr list --head "$BRANCH" --state open --json number -q length
               EXISTING_PR_COUNT=$(gh pr list --head "$BRANCH" --state open --json number -q length)
               echo "existing PRs: ${EXISTING_PR_COUNT}"
@@ -258,10 +270,15 @@ jobs:
                 echo "::notice::PR already exists for $BRANCH"
               else
                 gh pr create --base $TARGET --head $BRANCH --title "$PR_TITLE ($TARGET)"  --body "" --assignee "${{ github.actor }}" $draft_flag \
-                  || { echo "::error::creating PR failed"; continue;  }
+                  || { echo "::error::creating PR failed"; ((failed_prs++)); continue;  }
               fi
             fi
           done <<< "$PR_BODY"
+
+          if [ "$failed_prs" -gt 0 ]; then
+            echo "::error::Failed to create $failed_prs PR(s)"
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           PR_TITLE: ${{ github.event.pull_request.title }}
