@@ -1,21 +1,18 @@
-name: "Jira Issue Exists"
-description: "Checks if a Jira Issue exists"
+name: "Issue Exists"
+description: "Checks if a YouTrack Issue exists"
 branding:
   icon: check-square
   color: blue
 inputs:
   issue:
     required: true
-    description: "Jira Issue ID (e.g. PROD-80)"
-  user:
+    description: "YouTrack Issue ID (e.g. PROD-80)"
+  token:
     required: true
-    description: "Jira username"
-  password:
-    required: true
-    description: "Jira user password"
+    description: "YouTrack API token"
   url:
     required: true
-    description: "Jira base url"
+    description: "YouTrack base url"
 outputs:
   exists:
     description: "1 if the Issue exists else 0"
@@ -26,13 +23,12 @@ runs:
     - id: check
       shell: bash
       run: |
-        issue=`python "${{ github.action_path }}/../../jira.py" \
+        issue=`python "${{ github.action_path }}/../../youtrack.py" \
           --base-url="${{ inputs.url }}" \
-          --username="${{ inputs.user }}" \
-          --password="${{ inputs.password }}" \
+          --token="${{ inputs.token }}" \
           get-issue \
           --issue="${{ inputs.issue }}"`
-        
+
         if [[ $issue ]]; then
           echo "exists=1" >> $GITHUB_OUTPUT
         else

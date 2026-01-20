@@ -1,5 +1,5 @@
-name: "Jira Comment"
-description: "Adds a Comment to an Jira Issue"
+name: "Issue Comment"
+description: "Adds a Comment to a YouTrack Issue"
 branding:
   icon: message-square
   color: blue
@@ -7,33 +7,28 @@ inputs:
   comment_file:
     required: true
     description: "Path to a json file with the comments (dict with issue as key and comment as value)"
-  user:
+  token:
     required: true
-    description: "Jira username"
-  password:
-    required: true
-    description: "Jira user password"
+    description: "YouTrack API token"
   url:
     required: true
-    description: "Jira base url"
+    description: "YouTrack base url"
 runs:
   using: composite
   steps:
     - shell: powershell
       if: runner.os == 'Windows'
       run: |
-        python "${{ github.action_path }}/../../jira.py" `
+        python "${{ github.action_path }}/../../youtrack.py" `
         --base-url="${{ inputs.url }}" `
-        --username="${{ inputs.user }}" `
-        --password="${{ inputs.password }}" `
+        --token="${{ inputs.token }}" `
         add-comments `
         --comments-file="${{ inputs.comment_file }}"
     - shell: bash
       if: runner.os != 'Windows'
       run: |
-        python "${{ github.action_path }}/../../jira.py" \
+        python "${{ github.action_path }}/../../youtrack.py" \
           --base-url="${{ inputs.url }}" \
-          --username="${{ inputs.user }}" \
-          --password="${{ inputs.password }}" \
+          --token="${{ inputs.token }}" \
           add-comments \
           --comments-file="${{ inputs.comment_file }}"

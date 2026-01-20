@@ -1,0 +1,30 @@
+name: Release Version
+description: Releases a YouTrack Version
+branding:
+  icon: arrow-up
+  color: green
+inputs:
+  project:
+    required: true
+    description: YouTrack Project Key (e.g. FW)
+  version:
+    required: true
+    description: YouTrack Version Name (e.g. 3.01.03)
+  token:
+    required: true
+    description: YouTrack API token
+  url:
+    required: true
+    description: YouTrack base url
+runs:
+  using: composite
+  steps:
+    - id: check
+      shell: bash
+      run: |
+        python "${{ github.action_path }}/../../youtrack.py" \
+          --base-url="${{ inputs.url }}" \
+          --token="${{ inputs.token }}" \
+          release-version \
+          --project="${{ inputs.project }}" \
+          --version="${{ inputs.version }}"

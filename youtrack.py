@@ -5,7 +5,6 @@ import json
 import os
 import sys
 from argparse import ArgumentParser
-from base64 import b64encode
 from urllib import request
 from urllib.error import HTTPError
 from subprocess import check_call
@@ -40,21 +39,18 @@ def _assert_ok_status(req: request.Request) -> None:
     _fail(f"request `{req.full_url}` failed with status code {status}")
 
 
-
-class Jira:
-    def __init__(self, base_url: str, username: str, password: str) -> None:
-        self.base_url = base_url
-        self.username = username
-        self.password = password
+class YouTrack:
+    def __init__(self, base_url: str, token: str) -> None:
+        self.base_url = base_url.rstrip('/')
+        self.token = token
 
     def add_attachment(self, issue: str, path: str) -> None:
         check_call([
-            "curl", 
-            "--user", f"{self.username}:{self.password}",
-            "--request", "POST", 
-            "--header", "X-Atlassian-Token: nocheck", # disable XSRF check
+            "curl",
+            "--header", f"Authorization: Bearer {self.token}",
+            "--request", "POST",
             "--form", f"file=@{os.path.abspath(path)}",
-            f"{self.base_url}/rest/api/2/issue/{issue}/attachments",
+            f"{self.base_url}/api/issues/{issue}/attachments",
         ])
 
     def add_comments(self, comments_file: str) -> None:
@@ -73,9 +69,9 @@ class Jira:
 
     def add_comment(self, issue: str, comment: str) -> None:
         req = self._request(
-            f"issue/{issue}/comment",
+            f"api/issues/{issue}/comments",
             headers={"Content-Type": "application/json"},
-            data=json.dumps({"body": comment}).encode(),
+            data=json.dumps({"text": comment}).encode(),
         )
         status_code = _get_status_code(req)
         if status_code == 404:
@@ -86,49 +82,70 @@ class Jira:
         _fail(f"request `{req.full_url}` failed with status code {status_code}")
 
     def get_issue(self, issue: str) -> Any:
-        return _get_json(self._request(f"issue/{issue}"))
+        return _get_json(self._request(f"api/issues/{issue}?fields=idReadable"))
+
+    def get_fix_version_bundle_id(self, project: str) -> Optional[str]:
+        """Auto-discover the bundle ID for the 'Fix versions' field from project settings."""
+        fields = _get_json(self._request(
+            f"api/admin/projects/{project}/customFields?fields=field(name),bundle(id)"
+        ))
+        if fields:
+            for field in fields:
+                field_info = field.get("field", {})
+                if field_info.get("name") == "Fix versions":
+                    bundle = field.get("bundle")
+                    if bundle:
+                        return bundle.get("id")
+        return None
 
     def get_version(self, project: str, version: str) -> Any:
-        versions = _get_json(self._request(f"project/{project}/versions"))
+        """Get version info by looking up the bundle from project's Fix versions field."""
+        bundle_id = self.get_fix_version_bundle_id(project)
+        if not bundle_id:
+            return None
+
+        versions = _get_json(self._request(
+            f"api/admin/customFieldSettings/bundles/version/{bundle_id}/values"
+        ))
         if versions:
             for version_data in versions:
                 if version_data.get("name") == version:
                     return version_data
+        return None
 
     def release_version(self, project: str, version: str) -> None:
+        bundle_id = self.get_fix_version_bundle_id(project)
+        if not bundle_id:
+            _fail(f"could not find Fix versions bundle for project {project}")
+
         version_data = self.get_version(project, version)
         if version_data is None:
             _fail(f"version {version} in project {project} does not exist")
 
+        release_date_ms = int(datetime.datetime.now().timestamp() * 1000)
         _assert_ok_status(
             self._request(
-                f"version/{version_data['id']}",
-                method="PUT",
+                f"api/admin/customFieldSettings/bundles/version/{bundle_id}/values/{version_data['id']}",
+                method="POST",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps({
                     "released": True,
-                    "releaseDate": datetime.date.today().strftime("%Y-%m-%d")
+                    "releaseDate": release_date_ms
                 }).encode()
             )
         )
 
-    def close_issue(self, issue: str) -> None:
-        transitions = _get_json(self._request(f"issue/{issue}/transitions"))
-        if transitions is None:
-            _fail(f"could not fetch available transitions")
-
-        close_transition = next((t for t in transitions.get("transitions", []) if t.get("to", {}).get("name") == "Geschlossen"), None)
-        if close_transition is None:
-            _fail(f"issue {issue} does not have a close transition")
-
+    def close_issue(self, issue: str, state: str = "Closed") -> None:
+        """Close an issue using YouTrack commands API."""
         _assert_ok_status(
             self._request(
-                f"issue/{issue}/transitions",
+                "api/commands",
                 method="POST",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps({
-                    "fields": {"resolution": {"name": "Done"}},
-                    "transition": {"id": close_transition["id"]},
+                    "query": f"State {state}",
+                    "issues": [{"idReadable": issue}],
+                    "silent": True
                 }).encode()
             )
         )
@@ -140,12 +157,11 @@ class Jira:
             headers: Optional[Dict[str, str]] = None,
             data: Optional[bytes] = None
     ) -> request.Request:
-        login = f"{self.username}:{self.password}"
         return request.Request(
-            f"{self.base_url}/rest/api/2/{path}",
+            f"{self.base_url}/{path}",
             method=method,
             headers={
-                "Authorization": "Basic " + b64encode(login.encode()).decode(),
+                "Authorization": f"Bearer {self.token}",
                 **(headers or {})
             },
             data=data
@@ -153,52 +169,51 @@ class Jira:
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser("JIRA")
+    parser = ArgumentParser("YouTrack")
     parser.add_argument("--base-url", required=True)
-    parser.add_argument("--username", required=True)
-    parser.add_argument("--password", required=True)
+    parser.add_argument("--token", required=True)
     subparsers = parser.add_subparsers(required=True)
 
     add_comment_parser = subparsers.add_parser("add-comment")
-    add_comment_parser.set_defaults(func=Jira.add_comment)
+    add_comment_parser.set_defaults(func=YouTrack.add_comment)
     add_comment_parser.add_argument("--issue", required=True)
     add_comment_parser.add_argument("--comment", required=True)
 
     add_attachments = subparsers.add_parser("add-attachment")
-    add_attachments.set_defaults(func=Jira.add_attachment)
+    add_attachments.set_defaults(func=YouTrack.add_attachment)
     add_attachments.add_argument("--issue", required=True)
     add_attachments.add_argument("--path", required=True)
 
     add_comments_parser = subparsers.add_parser("add-comments")
-    add_comments_parser.set_defaults(func=Jira.add_comments)
+    add_comments_parser.set_defaults(func=YouTrack.add_comments)
     add_comments_parser.add_argument("--comments-file", required=True)
 
     get_issue_parser = subparsers.add_parser("get-issue")
-    get_issue_parser.set_defaults(func=Jira.get_issue)
+    get_issue_parser.set_defaults(func=YouTrack.get_issue)
     get_issue_parser.add_argument("--issue", required=True)
 
     get_version_parser = subparsers.add_parser("get-version")
-    get_version_parser.set_defaults(func=Jira.get_version)
+    get_version_parser.set_defaults(func=YouTrack.get_version)
     get_version_parser.add_argument("--project", required=True)
     get_version_parser.add_argument("--version", required=True)
 
     release_version_parser = subparsers.add_parser("release-version")
-    release_version_parser.set_defaults(func=Jira.release_version)
+    release_version_parser.set_defaults(func=YouTrack.release_version)
     release_version_parser.add_argument("--project", required=True)
     release_version_parser.add_argument("--version", required=True)
 
     close_issue_parser = subparsers.add_parser("close-issue")
-    close_issue_parser.set_defaults(func=Jira.close_issue)
+    close_issue_parser.set_defaults(func=YouTrack.close_issue)
     close_issue_parser.add_argument("--issue", required=True)
+    close_issue_parser.add_argument("--state", default="Closed")
 
     args = parser.parse_args().__dict__
 
-    jira = Jira(
+    youtrack = YouTrack(
         base_url=args.pop("base_url"),
-        username=args.pop("username"),
-        password=args.pop("password"),
+        token=args.pop("token"),
     )
     func = args.pop("func")
-    result = func(jira, **args)
+    result = func(youtrack, **args)
     if result is not None:
         print(json.dumps(result, indent=2))

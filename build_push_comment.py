@@ -7,9 +7,6 @@ import json
 from common import retrieve_commits, parse_subject, group_by_issue
 
 
-JIRA_URL = 'JIRA_URL'
-JIRA_USER = 'JIRA_USER'
-JIRA_PASSWORD = 'JIRA_PASSWORD'
 REPO_URL = 'CI_REPO_URL'
 START_COMMIT = 'CI_COMMIT_BEFORE_SHA'
 CUR_COMMIT = 'CI_COMMIT_SHA'
@@ -21,26 +18,26 @@ PROJECT_DIR = 'CI_PROJECT_DIR'
 def convert_to_comment(commits, repo_url, branch_name, project_name):
     comment = io.StringIO()
     bgcolor = '#deebff' if branch_name == 'master' else '#ffffce'
-    comment.write(f'{{panel:bgColor={bgcolor}|borderStyle=none}}\n')
+    comment.write(f'<div style="background:{bgcolor};padding:8px;border-radius:4px">\n')
     authors = set()
     for commit in commits:
         subject = parse_subject(commit)
         comment.write(
-            f"{subject.symbol} "
-            f"[{subject.text}|{repo_url}/commit/{commit.commitid}]\n")
+            f'{subject.symbol} '
+            f'<a href="{repo_url}/commit/{commit.commitid}">{subject.text}</a><br>\n')
         authors.add(commit.author)
-    comment.write('\n')
+    comment.write('<br>\n')
     comment.write(
-        f'{{color:#4c9aff}}{" ".join(authors)} contributed to '
-        f'[{project_name}|{repo_url}/tree/{branch_name}]')
+        f'<span style="color:#4c9aff">{" ".join(authors)} contributed to '
+        f'<a href="{repo_url}/tree/{branch_name}">{project_name}</a>')
     if branch_name != 'master':
-        comment.write(f' at *{branch_name}*')
-    comment.write('{color}\n')
-    comment.write('{panel}')
+        comment.write(f' at <b>{branch_name}</b>')
+    comment.write('</span>\n')
+    comment.write('</div>')
     return comment.getvalue()
 
 
-def create_jira_comments():
+def create_comments():
     env = os.environ
     new_branch = all(c == '0' for c in env[START_COMMIT])
     all_commits = retrieve_commits(
@@ -60,7 +57,7 @@ def create_jira_comments():
 
 
 def main():
-    print(json.dumps(create_jira_comments()))
+    print(json.dumps(create_comments()))
 
 
 if __name__ == '__main__':

@@ -59,8 +59,8 @@ jobs:
             --event='${{ github.event_name }}' `
             --ref='${{ github.head_ref || github.ref }}' `
             --repository-name='${{ github.event.repository.name }}' `
-            --jira-project='${{ vars.JIRA_PROJECT }}' `
-            --jira-version-template='${{ vars.JIRA_VERSION_TEMPLATE }}' `
+            --project='${{ vars.PROJECT }}' `
+            --version-template='${{ vars.VERSION_TEMPLATE }}' `
             | Out-File -FilePath $env:GITHUB_OUTPUT
           Get-Content -Path $env:GITHUB_OUTPUT  # prints output variables for debugging purposes
       - name: Check for latest template version
@@ -82,8 +82,8 @@ jobs:
       version-file: ${{ steps.context.outputs.version-file }}
       tag: ${{ steps.context.outputs.tag }}
       base-branch: ${{ steps.context.outputs.base-branch }}
-      jira-project: ${{ steps.context.outputs.jira-project }}
-      jira-version: ${{ steps.context.outputs.jira-version }}
+      project: ${{ steps.context.outputs.project }}
+      issue-version: ${{ steps.context.outputs.issue-version }}
 
   create-pr:
     name: Create PR
@@ -91,19 +91,18 @@ jobs:
     needs: [release-context]
     if: needs.release-context.outputs.release-stage == 'branch-created'
     steps:
-      - id: jira-version-exists
-        uses: baltech-ag/ci-scripts/actions/jira-version-exists@master
+      - id: version-exists
+        uses: baltech-ag/ci-scripts/actions/version-exists@master
         with:
-          project: ${{ needs.release-context.outputs.jira-project }}
-          version: ${{ needs.release-context.outputs.jira-version }}
-          user: ${{ vars.JIRA_USER }}
-          password: ${{ secrets.JIRA_PASSWORD }}
-          url: ${{ vars.JIRA_URL }}
-      - name: jira version required
-        if: ${{ steps.jira-version-exists.outputs.exists != '1' }}
+          project: ${{ needs.release-context.outputs.project }}
+          version: ${{ needs.release-context.outputs.issue-version }}
+          token: ${{ secrets.YOUTRACK_TOKEN }}
+          url: ${{ vars.YOUTRACK_URL }}
+      - name: version required
+        if: ${{ steps.version-exists.outputs.exists != '1' }}
         run: |
-          echo "${{ steps.jira-version-exists.output.exists }}"
-          echo "::error::Jira Version ${{ needs.release-context.outputs.jira-version }} does not exist in project ${{ needs.release-context.outputs.jira-project }}"
+          echo "${{ steps.version-exists.output.exists }}"
+          echo "::error::Version ${{ needs.release-context.outputs.issue-version }} does not exist in project ${{ needs.release-context.outputs.project }}"
           exit 1
       - name: Generate a token
         id: generate-token
@@ -194,13 +193,12 @@ jobs:
         run: |
           git tag ${{ needs.release-context.outputs.tag }}
           git push origin ${{ needs.release-context.outputs.tag }}
-      - uses: baltech-ag/ci-scripts/actions/jira-release-version@master
+      - uses: baltech-ag/ci-scripts/actions/release-version@master
         with:
-          project: ${{ needs.release-context.outputs.jira-project }}
-          version: ${{ needs.release-context.outputs.jira-version }}
-          user: ${{ vars.JIRA_USER }}
-          password: ${{ secrets.JIRA_PASSWORD }}
-          url: ${{ vars.JIRA_URL }}
+          project: ${{ needs.release-context.outputs.project }}
+          version: ${{ needs.release-context.outputs.issue-version }}
+          token: ${{ secrets.YOUTRACK_TOKEN }}
+          url: ${{ vars.YOUTRACK_URL }}
 
   cherry-picks:
     name: Create PRs with cherry-picks for version branches
@@ -285,7 +283,7 @@ jobs:
           PR_BODY: ${{ github.event.pull_request.body }}
 
   closing-issues:
-    name: Closes JIRA issues mentioned in the PR body
+    name: Closes issues mentioned in the PR body
     runs-on: ubuntu-24.04
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
     steps:
@@ -300,12 +298,11 @@ jobs:
       - name: Close Issues
         run: |
           while IFS= read -r LINE; do
-            if [[ $LINE =~ ^closes:[[:space:]]*([A-Za-z]+-[0-9]+)[[:space:]]*$ ]]; then  
+            if [[ $LINE =~ ^closes:[[:space:]]*([A-Za-z]+-[0-9]+)[[:space:]]*$ ]]; then
               ISSUE=${BASH_REMATCH[1]}
-              python jira.py \
-                --base-url="${{ vars.JIRA_URL }}" \
-                --username="${{ vars.JIRA_USER }}" \
-                --password="${{ secrets.JIRA_PASSWORD }}" \
+              python youtrack.py \
+                --base-url="${{ vars.YOUTRACK_URL }}" \
+                --token="${{ secrets.YOUTRACK_TOKEN }}" \
                 close-issue \
                 --issue=$ISSUE || echo "::error::could not close $ISSUE"
             fi
