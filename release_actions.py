@@ -196,8 +196,8 @@ def print_release_context(args: Namespace) -> None:
     def _get_value_from_maybe_mapping(maybe_mapping: str, *, key: str, fallback: str) -> str:
         """
         WORKAROUND FOR PYTHONSW
-        since PythonSW has multiple projects with different Jira-Projects,
-        we need a way to define for each project a jira project and jira version template.
+        since PythonSW has multiple projects with different YouTrack-Projects,
+        we need a way to define for each project a YouTrack project and version template.
 
         So we allow the following optional syntax for the env vars where these values are defined to map from a project-id to a value:
         <PRJ_ID_1>=<VALUE>,<PRJ_ID_1>=<VALUE>
@@ -210,12 +210,12 @@ def print_release_context(args: Namespace) -> None:
         else:
             return mapping.get(key, fallback)
 
-    jira_project = _get_value_from_maybe_mapping(args.jira_project, key=event.sub_project_id, fallback="UNKNOWN")
-    print(f"jira-project={jira_project}")
+    project = _get_value_from_maybe_mapping(args.project, key=event.sub_project_id, fallback="UNKNOWN")
+    print(f"project={project}")
 
-    jira_version_template = _get_value_from_maybe_mapping(args.jira_version_template, key=event.sub_project_id, fallback="$version")
-    jira_version = Template(jira_version_template).substitute(projectid=event.sub_project_id, version=event.version)
-    print(f"jira-version={jira_version}")
+    version_template = _get_value_from_maybe_mapping(args.version_template, key=event.sub_project_id, fallback="$version")
+    version = Template(version_template).substitute(projectid=event.sub_project_id, version=event.version)
+    print(f"issue-version={version}")
 
 
 def main() -> None:
@@ -227,8 +227,8 @@ def main() -> None:
     prepare_next_version_parser.add_argument("--event", choices=get_type_args(EventName), required=True)
     prepare_next_version_parser.add_argument("--repository-name", type=str, required=True)
     prepare_next_version_parser.add_argument("--ref", type=str, required=True)
-    prepare_next_version_parser.add_argument("--jira-project", type=str, required=True)
-    prepare_next_version_parser.add_argument("--jira-version-template", type=str, required=True)
+    prepare_next_version_parser.add_argument("--project", type=str, required=True)
+    prepare_next_version_parser.add_argument("--version-template", type=str, required=True)
 
     args = parser.parse_args()
     args.func(args)

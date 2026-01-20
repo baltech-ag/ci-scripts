@@ -1,27 +1,24 @@
-name: Jira Version Exists
-description: Checks if a Jira Version exists
+name: Version Exists
+description: Checks if a YouTrack Version exists
 branding:
   icon: check-square
   color: blue
 inputs:
   project:
     required: true
-    description: Jira Project Key (e.g. FW)
+    description: YouTrack Project Key (e.g. FW)
   version:
     required: true
-    description: Jira Version Name (e.g. PROD-80)
-  user:
+    description: YouTrack Version Name (e.g. 3.01.03)
+  token:
     required: true
-    description: Jira username
-  password:
-    required: true
-    description: Jira user password
+    description: YouTrack API token
   url:
     required: true
-    description: Jira base url
+    description: YouTrack base url
 outputs:
   exists:
-    description: 1 if the Issue exists else 0
+    description: 1 if the Version exists else 0
     value: ${{ steps.check.outputs.exists }}
 runs:
   using: composite
@@ -29,14 +26,13 @@ runs:
     - id: check
       shell: bash
       run: |
-        version=`python "${{ github.action_path }}/../../jira.py" \
+        version=`python "${{ github.action_path }}/../../youtrack.py" \
           --base-url="${{ inputs.url }}" \
-          --username="${{ inputs.user }}" \
-          --password="${{ inputs.password }}" \
+          --token="${{ inputs.token }}" \
           get-version \
           --project="${{ inputs.project }}" \
           --version="${{ inputs.version }}"`
-        
+
         if [[ $version ]]; then
           echo "exists=1" >> $GITHUB_OUTPUT
         else

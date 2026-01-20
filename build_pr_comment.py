@@ -19,20 +19,19 @@ PROJECT_URL = 'CI_PROJECT_URL'
 
 def convert_to_comment(author_name, pr_title, pr_url, branch_name,
                        base_branch_name, project_name, project_url):
-    escaped_pr_title = pr_title.replace("[", "\\[").replace("]", "\\]")
     comment = io.StringIO()
     comment.write(
-        f"(*b) *{author_name}* opened a [*pull request*|{pr_url}] "
-        f"in [{project_name}|{project_url}] "
-        f"for branch *{base_branch_name}* ← *{branch_name}*:"
-        "{quote}"
-        f"{escaped_pr_title}"
-        "{quote}\n"
+        f'<div style="background:#e3fcef;padding:8px;border-radius:4px">\n'
+        f'\U0001F535 <b>{author_name}</b> opened a <a href="{pr_url}"><b>pull request</b></a> '
+        f'in <a href="{project_url}">{project_name}</a> '
+        f'for branch <b>{base_branch_name}</b> \u2190 <b>{branch_name}</b>:\n'
+        f'<blockquote>{pr_title}</blockquote>\n'
+        f'</div>\n'
     )
     return comment.getvalue()
 
 
-def create_jira_comment():
+def create_comment():
     env = os.environ
     issues = parse_issues(env[BRANCH_NAME])
     if len(issues) == 0:
@@ -50,7 +49,7 @@ def create_jira_comment():
 
 
 def main():
-    print(json.dumps(create_jira_comment()))
+    print(json.dumps(create_comment()))
 
 
 if __name__ == '__main__':

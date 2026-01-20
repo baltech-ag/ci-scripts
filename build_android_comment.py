@@ -14,24 +14,24 @@ NUM_COMMITS = 'CI_NUM_COMMITS'
 BRANCH_NAME = 'CI_COMMIT_REF_NAME'
 PROJECT_NAME = 'CI_PROJECT_NAME'
 PROJECT_DIR = 'CI_PROJECT_DIR'
-JIRA_TICKET_ID = 'CI_JIRA_TICKET_ID'
+TICKET_ID = 'CI_TICKET_ID'
 ANDROID_URL = 'CI_ANDROID_URL'
 ANDROID_QRCODE = 'CI_ANDROID_QRCODE'
 
 
 def convert_to_comment(author_name, project_name, repo_url, branch_name,
                        android_url, android_qrcode):
-    return (f"(flag) *{author_name}* prepared an "
-            f"[*Android* test build|{android_url}] "
-            f"for [*{project_name}*|{repo_url}] "
-            f"on branch *{branch_name}*:\n\n"
-            f"!{android_qrcode}|width=100!")
+    return (f'\U0001F6A9 <b>{author_name}</b> prepared an '
+            f'<a href="{android_url}"><b>Android</b> test build</a> '
+            f'for <a href="{repo_url}"><b>{project_name}</b></a> '
+            f'on branch <b>{branch_name}</b>:<br><br>\n'
+            f'<img src="{android_qrcode}" width="100">')
 
 
-def create_jira_comments():
+def create_comments():
     env = os.environ
-    if env[JIRA_TICKET_ID]:
-        affected_issues = [env[JIRA_TICKET_ID]]
+    if env[TICKET_ID]:
+        affected_issues = [env[TICKET_ID]]
     else:
         all_commits = retrieve_commits(
             env[PROJECT_DIR],
@@ -55,7 +55,7 @@ def create_jira_comments():
 
 
 def main():
-    print(json.dumps(create_jira_comments()))
+    print(json.dumps(create_comments()))
 
 
 if __name__ == '__main__':
