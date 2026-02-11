@@ -14,12 +14,12 @@ ISSUE_REGEX_BLACKLIST = (
 _ISSUE_COMPILED_REGEX_BLACKLIST = [re.compile(f"^{pattern}$") for pattern in ISSUE_REGEX_BLACKLIST]
 
 COMMITTYPES = {
-    'feature': '(+)',
-    'bugfix': '(x)',
-    'refactoring': '(*)',
-    'internal': '(i)',
-    'release': '(flag)',
-    'next-version-start': '(flagoff)'}
+    'feature': '\u2795',         # plus sign
+    'bugfix': '\u274c',          # cross mark
+    'refactoring': '\u2b50',     # star
+    'internal': '\u2139\ufe0f',  # info
+    'release': '\U0001F6A9',     # flag
+    'next-version-start': '\U0001F3F3\uFE0F'}  # white flag
 SUBJECT_REGEX = re.compile(rf'^\[({"|".join(COMMITTYPES)})] (.*)')
 
 Commit = namedtuple('Commit', 'commitid, author, subject, body')
