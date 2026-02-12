@@ -87,14 +87,13 @@ class YouTrack:
 
     def get_fix_version_bundle_id(self, project: str) -> Optional[str]:
         """Auto-discover the bundle ID for the 'Fix versions' field from project settings."""
-        fields = _get_json(self._request(
-            f"api/admin/projects/{project}/customFields?fields=field(name),bundle(id)&$top=-1"
+        issues = _get_json(self._request(
+            f"api/issues?query=project:{project}&fields=customFields(name,projectCustomField(bundle(id)))&$top=1"
         ))
-        if fields:
-            for field in fields:
-                field_info = field.get("field", {})
-                if field_info.get("name") == "Fix versions":
-                    bundle = field.get("bundle")
+        if issues:
+            for field in issues[0].get("customFields", []):
+                if field.get("name") == "Fix versions":
+                    bundle = field.get("projectCustomField", {}).get("bundle")
                     if bundle:
                         return bundle.get("id")
         return None
@@ -106,7 +105,7 @@ class YouTrack:
             return None
 
         versions = _get_json(self._request(
-            f"api/admin/customFieldSettings/bundles/version/{bundle_id}/values?$top=-1"
+            f"api/admin/customFieldSettings/bundles/version/{bundle_id}/values?fields=id,name&$top=-1"
         ))
         if versions:
             for version_data in versions:
