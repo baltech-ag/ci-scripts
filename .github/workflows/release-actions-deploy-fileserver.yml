@@ -22,28 +22,25 @@ jobs:
     name: Deploy build to OneDrive
     runs-on: [self-hosted, windows, onedrive]
     steps:
-      - name: Download artifact
-        id: download-artifact
-        uses: actions/download-artifact@v5
+      - id: artifacts
+        uses: baltech-ag/ci-scripts/actions/append-artifact-versions@master
         with:
-          name: ${{ inputs.artifact-name }}
-          path: ./artifacts
+          artifact-name: ${{ inputs.artifact-name }}
+          version: ${{ inputs.version }}
       - name: Deploy
         shell: python
         run: |
           import os
           from pathlib import Path
-          
-          version = r"${{ inputs.version }}".replace(".", "_")
-          download_path = Path(r"${{ steps.download-artifact.outputs.download-path }}")
+
+          download_path = Path(r"${{ steps.artifacts.outputs.download-path }}")
           destination = Path(
-            r"${{ inputs.basepath }}" or os.environ["OneDriveCommercial"], 
+            r"${{ inputs.basepath }}" or os.environ["OneDriveCommercial"],
             r"F&E\Projekte\${{ inputs.projects-folder }}\${{ inputs.project-name }}\bin"
           )
-          
+
           for artifact in filter(lambda p: p.is_file(), download_path.glob("**/*")):
-            artifact_destination = destination / artifact.relative_to(download_path).with_stem(f"{artifact.stem}_{version}")
+            artifact_destination = destination / artifact.relative_to(download_path)
             print(f"::notice::deploy {artifact_destination}")
-          
             artifact_destination.parent.mkdir(exist_ok=True, parents=True)
             artifact_destination.write_bytes(artifact.read_bytes())

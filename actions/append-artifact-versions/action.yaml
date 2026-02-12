@@ -1,0 +1,43 @@
+name: Append artifact versions
+description: Download and rename artifact files to include version
+inputs:
+  artifact-name:
+    required: true
+  version:
+    required: true
+  path:
+    required: false
+    default: ./artifacts
+  exclude:
+    description: Comma-separated list of filenames to exclude from renaming
+    required: false
+    default: ''
+outputs:
+  download-path:
+    description: Path to the renamed artifacts
+    value: ${{ steps.download-artifact.outputs.download-path }}
+runs:
+  using: composite
+  steps:
+    - name: Download artifact
+      id: download-artifact
+      uses: actions/download-artifact@v5
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.path }}
+    - name: Rename artifacts
+      shell: python
+      run: |
+        from pathlib import Path
+
+        version = "${{ inputs.version }}".replace(".", "_")
+        download_path = Path("${{ steps.download-artifact.outputs.download-path }}")
+        exclude = {name.strip() for name in "${{ inputs.exclude }}".split(",") if name.strip()}
+
+        for artifact in filter(lambda p: p.is_file(), download_path.glob("**/*")):
+          if artifact.name in exclude:
+            print(f"::notice::skip {artifact.name}")
+            continue
+          renamed = artifact.with_stem(f"{artifact.stem}_{version}")
+          print(f"::notice::rename {artifact.name} -> {renamed.name}")
+          artifact.rename(renamed)
