@@ -1,0 +1,56 @@
+name: Release Actions - Deploy build to Downloads
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        type: string
+        required: true
+      dest:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
+      incremental:
+        type: boolean
+        required: false
+        default: true
+      template:
+        type: string
+        required: false
+        default: ''
+      cleanup:
+        type: string
+        required: false
+        default: ''
+      deploy-branch:
+        type: string
+        required: false
+        default: 'master'
+jobs:
+  append-artifact-versions:
+    name: Rename artifacts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: baltech-ag/ci-scripts/actions/append-artifact-versions@master
+        with:
+          artifact-name: ${{ inputs.artifact-name }}
+          version: ${{ inputs.version }}
+          exclude: ${{ inputs.template }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact-name }}-versioned
+          path: ./artifacts
+          retention-days: 1
+  deploy-downloads:
+    name: Deploy to downloads
+    needs: [append-artifact-versions]
+    uses: baltech-ag/docs.baltech.de/.github/workflows/org-update.yaml@master
+    with:
+      artifact: ${{ inputs.artifact-name }}-versioned
+      dest: ${{ inputs.dest }}
+      incremental: ${{ inputs.incremental }}
+      templates: ${{ inputs.template }}
+      cleanup: ${{ inputs.cleanup }}
+      branch: ${{ inputs.deploy-branch }}
+    secrets: inherit
