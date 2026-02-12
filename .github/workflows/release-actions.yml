@@ -91,6 +91,12 @@ jobs:
     needs: [release-context]
     if: needs.release-context.outputs.release-stage == 'branch-created'
     steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - id: version-exists
         uses: baltech-ag/ci-scripts/actions/version-exists@master
         with:
@@ -104,12 +110,6 @@ jobs:
           echo "${{ steps.version-exists.output.exists }}"
           echo "::error::Version ${{ needs.release-context.outputs.issue-version }} does not exist in project ${{ needs.release-context.outputs.project }}"
           exit 1
-      - name: Generate a token
-        id: generate-token
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.BALTECH_BOT_ID }}
-          private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Checkout
         uses: actions/checkout@v5
         with:
@@ -158,8 +158,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Delete Release-Branch
-        run: git push origin --delete ${{ github.ref_name  }}
+        run: gh api --method DELETE repos/${{ github.repository }}/git/refs/heads/${{ github.ref_name }}
         if: failure()
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Approve PR
         run: gh pr review ${{ github.ref_name }} --approve
         env:
