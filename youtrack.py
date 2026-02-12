@@ -26,7 +26,8 @@ def _get_status_code(req: request.Request) -> int:
 def _get_json(req: request.Request) -> Any:
     try:
         response = request.urlopen(req)
-    except HTTPError:
+    except HTTPError as e:
+        print(f"::warning::request `{req.full_url}` failed with status code {e.status}" if os.environ.get("CI") else f"WARNING: request `{req.full_url}` failed with status code {e.status}")
         return None
     else:
         return json.loads(response.read())
@@ -105,7 +106,7 @@ class YouTrack:
             return None
 
         versions = _get_json(self._request(
-            f"api/admin/customFieldSettings/bundles/version/{bundle_id}/values"
+            f"api/admin/customFieldSettings/bundles/version/{bundle_id}/values?$top=-1"
         ))
         if versions:
             for version_data in versions:
