@@ -31,7 +31,7 @@ runs:
         from pathlib import Path
 
         version = "${{ inputs.version }}".replace(".", "_")
-        download_path = Path("${{ steps.download-artifact.outputs.download-path }}")
+        download_path = Path(r"${{ steps.download-artifact.outputs.download-path }}")
         exclude = {name.strip() for name in "${{ inputs.exclude }}".split(",") if name.strip()}
 
         for artifact in filter(lambda p: p.is_file(), download_path.glob("**/*")):
