@@ -9,7 +9,7 @@ inputs:
     required: false
     default: ./artifacts
   exclude:
-    description: Comma-separated list of filenames to exclude from renaming
+    description: Whitespace-separated list of filenames to exclude from renaming
     required: false
     default: ''
 outputs:
@@ -32,7 +32,7 @@ runs:
 
         version = "${{ inputs.version }}".replace(".", "_")
         download_path = Path(r"${{ steps.download-artifact.outputs.download-path }}")
-        exclude = {name.strip() for name in "${{ inputs.exclude }}".split(",") if name.strip()}
+        exclude = {name for name in "${{ inputs.exclude }}".split()}
 
         for artifact in filter(lambda p: p.is_file(), download_path.glob("**/*")):
           if artifact.name in exclude:
