@@ -48,7 +48,7 @@ def retrieve_commits(project_dir, start_commit, cur_commit='HEAD'):
              '--format=%H%x00%aN%x00%s%x00%b%x01']).decode()
     except subprocess.CalledProcessError as e:
         if e.returncode == 128:
-            print("::warn::could not retrieve commits")
+            print("::warning::could not retrieve commits")
             return []
         raise
     return [Commit(*log.strip().split('\x00'))
