@@ -3,6 +3,7 @@
 import os
 import io
 import json
+import sys
 
 from common import retrieve_commits, parse_subject, group_by_issue
 
@@ -57,7 +58,8 @@ def create_comments():
 
 
 def main():
-    print(json.dumps(create_comments()))
+    with open(sys.argv[1], 'w') as f:
+        json.dump(create_comments(), f)
 
 
 if __name__ == '__main__':
