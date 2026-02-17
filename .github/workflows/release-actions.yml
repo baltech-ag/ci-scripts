@@ -61,6 +61,7 @@ jobs:
             --repository-name='${{ github.event.repository.name }}' `
             --project='${{ vars.PROJECT }}' `
             --version-template='${{ vars.VERSION_TEMPLATE }}' `
+            --release-name='${{ vars.RELEASE_NAME }}' `
             | Out-File -FilePath $env:GITHUB_OUTPUT
           Get-Content -Path $env:GITHUB_OUTPUT  # prints output variables for debugging purposes
       - name: Check for latest template version

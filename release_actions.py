@@ -89,7 +89,7 @@ def print_release_context(args: Namespace) -> None:
 
     def _get_project_name(spid: str | None) -> str:
         if not spid:
-            return args.repository_name
+            return args.release_name or args.repository_name
 
         try:
             return next(Path().glob(f"{spid}_*")).name
@@ -229,6 +229,7 @@ def main() -> None:
     prepare_next_version_parser.add_argument("--ref", type=str, required=True)
     prepare_next_version_parser.add_argument("--project", type=str, required=True)
     prepare_next_version_parser.add_argument("--version-template", type=str, required=True)
+    prepare_next_version_parser.add_argument("--release-name", type=str, default="")
 
     args = parser.parse_args()
     args.func(args)
