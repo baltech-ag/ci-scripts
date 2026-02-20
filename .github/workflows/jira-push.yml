@@ -21,8 +21,6 @@ jobs:
         with:
           repository: baltech-ag/ci-scripts
           path: ci-scripts
-      - name: Fetch before commit
-        run: git fetch --depth=1 origin ${{ github.event.before }} || true
       - name: Set default env
         run: |
           echo "CI_COMMIT_BEFORE_SHA=${{ github.event.before }}" >> $GITHUB_ENV
