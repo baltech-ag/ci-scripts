@@ -136,16 +136,20 @@ class YouTrack:
         )
 
     def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
-        """Close an issue using YouTrack commands API."""
+        """Close an issue by updating its State field."""
         _assert_ok_status(
             self._request(
-                "api/commands",
+                f"api/issues/{issue}",
                 method="POST",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps({
-                    "query": f"State {state}",
-                    "issues": [{"idReadable": issue}],
-                    "silent": True
+                    "customFields": [
+                        {
+                            "name": "State",
+                            "$type": "StateIssueCustomField",
+                            "value": {"name": state}
+                        }
+                    ]
                 }).encode()
             )
         )
