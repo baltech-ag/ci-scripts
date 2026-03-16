@@ -135,7 +135,7 @@ class YouTrack:
             )
         )
 
-    def close_issue(self, issue: str, state: str = "Closed") -> None:
+    def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
         """Close an issue using YouTrack commands API."""
         _assert_ok_status(
             self._request(
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     close_issue_parser = subparsers.add_parser("close-issue")
     close_issue_parser.set_defaults(func=YouTrack.close_issue)
     close_issue_parser.add_argument("--issue", required=True)
-    close_issue_parser.add_argument("--state", default="Closed")
+    close_issue_parser.add_argument("--state", default="Closed (Done)")
 
     args = parser.parse_args().__dict__
 
