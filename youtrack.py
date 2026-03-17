@@ -30,7 +30,7 @@ _RESOLUTION_MAP: Dict[str, str] = {
 
 
 def _fail(msg: str) -> None:
-    print(f"::error::{msg}" if os.environ.get("CI") else msg)
+    print(f"::error::{msg}" if os.environ.get("CI") else msg, file=sys.stderr)
     sys.exit(1)
 
 
@@ -45,17 +45,22 @@ def _get_json(req: request.Request) -> Any:
     try:
         response = request.urlopen(req)
     except HTTPError as e:
-        print(f"::warning::request `{req.full_url}` failed with status code {e.status}" if os.environ.get("CI") else f"WARNING: request `{req.full_url}` failed with status code {e.status}")
+        body = e.read().decode() if e.readable() else ""
+        print(f"::warning::request `{req.full_url}` failed with status code {e.status}: {body}" if os.environ.get("CI") else f"WARNING: request `{req.full_url}` failed with status code {e.status}: {body}", file=sys.stderr)
         return None
     else:
         return json.loads(response.read())
 
 
 def _assert_ok_status(req: request.Request) -> None:
-    status = _get_status_code(req)
-    if 200 <= status < 300:
-        return
-    _fail(f"request `{req.full_url}` failed with status code {status}")
+    try:
+        response = request.urlopen(req)
+        if 200 <= response.status < 300:
+            return
+        _fail(f"request `{req.full_url}` failed with status code {response.status}")
+    except HTTPError as e:
+        body = e.read().decode() if e.readable() else ""
+        _fail(f"request `{req.full_url}` failed with status code {e.status}: {body}")
 
 
 class YouTrack:
@@ -94,7 +99,7 @@ class YouTrack:
         )
         status_code = _get_status_code(req)
         if status_code == 404:
-            print(f"::warning::issue {issue} not found, skipping comment")
+            print(f"::warning::issue {issue} not found, skipping comment", file=sys.stderr)
             return
         if 200 <= status_code < 300:
             return
