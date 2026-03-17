@@ -1,0 +1,33 @@
+name: "Issue Link"
+description: "Links a YouTrack Issue to other issues"
+branding:
+  icon: link
+  color: blue
+inputs:
+  issue:
+    required: true
+    description: "YouTrack Issue ID (e.g. SDK-123)"
+  type:
+    required: true
+    description: "Link type: depends-on, is-required-for, relates-to, parent-for, subtask-of"
+  links:
+    required: true
+    description: "Comma-separated list of target issue IDs"
+  token:
+    required: true
+    description: "YouTrack API token"
+  url:
+    required: true
+    description: "YouTrack base url"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        python "${{ github.action_path }}/../../youtrack.py" \
+          --base-url="${{ inputs.url }}" \
+          --token="${{ inputs.token }}" \
+          issue-link \
+          --issue="${{ inputs.issue }}" \
+          --type="${{ inputs.type }}" \
+          --links="${{ inputs.links }}"

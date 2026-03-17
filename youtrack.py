@@ -9,7 +9,16 @@ from urllib import request
 from urllib.error import HTTPError
 from urllib.parse import quote
 from subprocess import check_call
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Tuple
+
+
+_LINK_TYPE_MAP: Dict[str, Tuple[str, str]] = {
+    "depends-on":       ("Depend",  "OUTWARD"),
+    "is-required-for":  ("Depend",  "INWARD"),
+    "relates-to":       ("Relate",  "BOTH"),
+    "parent-for":       ("Subtask", "INWARD"),
+    "subtask-of":       ("Subtask", "OUTWARD"),
+}
 
 
 def _fail(msg: str) -> None:
@@ -84,7 +93,7 @@ class YouTrack:
         _fail(f"request `{req.full_url}` failed with status code {status_code}")
 
     def get_issue(self, issue: str) -> Any:
-        return _get_json(self._request(f"api/issues/{issue}?fields=idReadable"))
+        return _get_json(self._request(f"api/issues/{issue}?fields=id,idReadable"))
 
     def get_fix_version_bundle_id(self, project: str) -> Optional[str]:
         """Auto-discover the bundle ID for the 'Fix versions' field from project settings."""
@@ -225,6 +234,39 @@ class YouTrack:
                 data=json.dumps({"id": user["id"]}).encode()
             ))
 
+    def get_link_type_ids(self) -> Dict[str, str]:
+        """Get all issue link types as {name: id} map."""
+        link_types = _get_json(self._request(
+            "api/issueLinkTypes?fields=id,name"
+        ))
+        if not link_types:
+            _fail("failed to retrieve issue link types")
+        return {lt["name"]: lt["id"] for lt in link_types}
+
+    def issue_link(self, issue: str, link_type: str, links: str) -> None:
+        """Link an issue to other issues."""
+        yt_name, direction = _LINK_TYPE_MAP[link_type]
+        link_type_id = self.get_link_type_ids()[yt_name]
+        # Direction suffix: added issues go on opposite side
+        # OUTWARD = {issue} -> {links}, so links are targets (t)
+        # INWARD = {links} -> {issue}, so links are sources (s)
+        dir_suffix = {"OUTWARD": "t", "INWARD": "s", "BOTH": ""}[direction]
+
+        for target in links.split(","):
+            target = target.strip()
+            if not target:
+                continue
+            # Resolve target issue database ID
+            target_issue = self.get_issue(target)
+            if not target_issue:
+                _fail(f"issue {target} not found")
+            _assert_ok_status(self._request(
+                f"api/issues/{issue}/links/{link_type_id}{dir_suffix}/issues",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({"id": target_issue["id"]}).encode()
+            ))
+
     def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
         """Close an issue by updating its State field."""
         _assert_ok_status(
@@ -310,6 +352,13 @@ if __name__ == "__main__":
     issue_watch_parser.set_defaults(func=YouTrack.issue_watch)
     issue_watch_parser.add_argument("--issue", required=True)
     issue_watch_parser.add_argument("--logins", required=True)
+
+    issue_link_parser = subparsers.add_parser("issue-link")
+    issue_link_parser.set_defaults(func=YouTrack.issue_link)
+    issue_link_parser.add_argument("--issue", required=True)
+    issue_link_parser.add_argument("--type", dest="link_type", required=True,
+                                   choices=_LINK_TYPE_MAP.keys())
+    issue_link_parser.add_argument("--links", required=True)
 
     close_issue_parser = subparsers.add_parser("close-issue")
     close_issue_parser.set_defaults(func=YouTrack.close_issue)
