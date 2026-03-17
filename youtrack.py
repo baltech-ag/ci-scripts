@@ -280,6 +280,23 @@ class YouTrack:
                 data=json.dumps({"id": target_issue["id"]}).encode()
             ))
 
+    def issue_search(self, query: str) -> list:
+        """Search for issues by query, returns list of issue IDs."""
+        all_issues = []
+        skip = 0
+        batch_size = 50
+        while True:
+            issues = _get_json(self._request(
+                f"api/issues?query={quote(query)}&fields=idReadable&$top={batch_size}&$skip={skip}"
+            ))
+            if not issues:
+                break
+            all_issues.extend(issue["idReadable"] for issue in issues)
+            if len(issues) < batch_size:
+                break
+            skip += batch_size
+        return all_issues
+
     def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
         """Close an issue by updating its State field."""
         _assert_ok_status(
@@ -372,6 +389,10 @@ if __name__ == "__main__":
     issue_link_parser.add_argument("--type", dest="link_type", required=True,
                                    choices=_LINK_TYPE_MAP.keys())
     issue_link_parser.add_argument("--links", required=True)
+
+    issue_search_parser = subparsers.add_parser("issue-search")
+    issue_search_parser.set_defaults(func=YouTrack.issue_search)
+    issue_search_parser.add_argument("--query", required=True)
 
     issue_close_parser = subparsers.add_parser("issue-close")
     issue_close_parser.set_defaults(func=lambda yt, issue, resolution:

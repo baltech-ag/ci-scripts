@@ -1,0 +1,33 @@
+name: "Issue Search"
+description: "Searches YouTrack issues by query"
+branding:
+  icon: search
+  color: blue
+inputs:
+  query:
+    required: true
+    description: "YouTrack search query"
+  token:
+    required: true
+    description: "YouTrack API token"
+  url:
+    required: true
+    description: "YouTrack base url"
+outputs:
+  issues:
+    description: "Comma-separated list of issue IDs"
+    value: ${{ steps.search.outputs.issues }}
+runs:
+  using: composite
+  steps:
+    - id: search
+      shell: bash
+      run: |
+        result=$(python "${{ github.action_path }}/../../youtrack.py" \
+          --base-url="${{ inputs.url }}" \
+          --token="${{ inputs.token }}" \
+          issue-search \
+          --query="${{ inputs.query }}")
+
+        issues=$(echo "$result" | python -c "import sys,json; print(','.join(json.load(sys.stdin)))")
+        echo "issues=$issues" >> $GITHUB_OUTPUT
