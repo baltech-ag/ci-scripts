@@ -20,6 +20,14 @@ _LINK_TYPE_MAP: Dict[str, Tuple[str, str]] = {
     "subtask-of":       ("Subtask", "OUTWARD"),
 }
 
+_RESOLUTION_MAP: Dict[str, str] = {
+    "done":                "Closed (Done)",
+    "wont-do":             "Closed (Won't Do)",
+    "duplicate":           "Closed (Duplicate)",
+    "no-action-required":  "Closed (No Action Required)",
+    "cannot-reproduce":    "Closed (Cannot Reproduce)",
+}
+
 
 def _fail(msg: str) -> None:
     print(f"::error::{msg}" if os.environ.get("CI") else msg)
@@ -359,6 +367,13 @@ if __name__ == "__main__":
     issue_link_parser.add_argument("--type", dest="link_type", required=True,
                                    choices=_LINK_TYPE_MAP.keys())
     issue_link_parser.add_argument("--links", required=True)
+
+    issue_close_parser = subparsers.add_parser("issue-close")
+    issue_close_parser.set_defaults(func=lambda yt, issue, resolution:
+                                    yt.close_issue(issue, _RESOLUTION_MAP[resolution]))
+    issue_close_parser.add_argument("--issue", required=True)
+    issue_close_parser.add_argument("--resolution", required=True,
+                                    choices=_RESOLUTION_MAP.keys())
 
     close_issue_parser = subparsers.add_parser("close-issue")
     close_issue_parser.set_defaults(func=YouTrack.close_issue)

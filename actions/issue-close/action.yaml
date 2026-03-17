@@ -1,0 +1,29 @@
+name: "Issue Close"
+description: "Closes a YouTrack Issue with a resolution"
+branding:
+  icon: check-circle
+  color: blue
+inputs:
+  issue:
+    required: true
+    description: "YouTrack Issue ID (e.g. SDK-123)"
+  resolution:
+    required: true
+    description: "Resolution: done, wont-do, duplicate, no-action-required, cannot-reproduce"
+  token:
+    required: true
+    description: "YouTrack API token"
+  url:
+    required: true
+    description: "YouTrack base url"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        python "${{ github.action_path }}/../../youtrack.py" \
+          --base-url="${{ inputs.url }}" \
+          --token="${{ inputs.token }}" \
+          issue-close \
+          --issue="${{ inputs.issue }}" \
+          --resolution="${{ inputs.resolution }}"
