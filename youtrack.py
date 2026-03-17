@@ -209,6 +209,22 @@ class YouTrack:
             _fail("failed to retrieve issue tags")
         return {t["name"]: t["id"] for t in tags}
     
+    def issue_watch(self, issue: str, logins: str) -> None:
+        """Add watchers to an issue by logins (comma-separated)."""
+        for login in logins.split(","):
+            login = login.strip()
+            if not login:
+                continue
+            user = self.get_user(login)
+            if not user:
+                _fail(f"user with login {login} not found")
+            _assert_ok_status(self._request(
+                f"api/issues/{issue}/watchers",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({"id": user["id"]}).encode()
+            ))
+
     def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
         """Close an issue by updating its State field."""
         _assert_ok_status(
@@ -289,6 +305,11 @@ if __name__ == "__main__":
     issue_create_parser.add_argument("--tags", default="")
     issue_create_parser.add_argument("--assignee", default="")
     issue_create_parser.add_argument("--deduplicate", action="store_true")
+
+    issue_watch_parser = subparsers.add_parser("issue-watch")
+    issue_watch_parser.set_defaults(func=YouTrack.issue_watch)
+    issue_watch_parser.add_argument("--issue", required=True)
+    issue_watch_parser.add_argument("--logins", required=True)
 
     close_issue_parser = subparsers.add_parser("close-issue")
     close_issue_parser.set_defaults(func=YouTrack.close_issue)
