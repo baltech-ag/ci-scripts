@@ -1,0 +1,65 @@
+name: "Issue Create"
+description: "Creates a YouTrack Issue"
+branding:
+  icon: plus-square
+  color: blue
+inputs:
+  project:
+    required: true
+    description: "YouTrack Project Key (e.g. SDK)"
+  summary:
+    required: true
+    description: "Issue summary"
+  description:
+    required: true
+    description: "Issue description"
+  type:
+    required: true
+    description: "Issue type (e.g. Task)"
+  tags:
+    required: false
+    default: ""
+    description: "Comma-separated list of tags to add to the issue"
+  assignee:
+    required: false
+    default: "gitlab@baltech.de"
+    description: "Assignee YouTrack login"
+  deduplicate:
+    required: false
+    default: "false"
+    description: "If true, skip creation when an issue with the same summary already exists"
+  token:
+    required: true
+    description: "YouTrack API token"
+  url:
+    required: true
+    description: "YouTrack base url"
+outputs:
+  issue-id:
+    description: "Created (or existing) issue ID (e.g. SDK-123)"
+    value: ${{ steps.create.outputs.issue-id }}
+runs:
+  using: composite
+  steps:
+    - id: create
+      shell: bash
+      run: |
+        deduplicate_flag=""
+        if [[ "${{ inputs.deduplicate }}" == "true" ]]; then
+          deduplicate_flag="--deduplicate"
+        fi
+
+        result=$(python "${{ github.action_path }}/../../youtrack.py" \
+          --base-url="${{ inputs.url }}" \
+          --token="${{ inputs.token }}" \
+          issue-create \
+          --project="${{ inputs.project }}" \
+          --summary="${{ inputs.summary }}" \
+          --description="${{ inputs.description }}" \
+          --type="${{ inputs.type }}" \
+          --tags="${{ inputs.tags }}" \
+          --assignee="${{ inputs.assignee }}" \
+          $deduplicate_flag)
+
+        issue_id=$(echo "$result" | python -c "import sys,json; print(json.load(sys.stdin)['idReadable'])")
+        echo "issue-id=$issue_id" >> $GITHUB_OUTPUT
