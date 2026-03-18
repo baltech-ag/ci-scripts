@@ -208,10 +208,6 @@ class YouTrack:
             "description": description,
             "customFields": custom_fields,
         }
-        if tags:
-            tag_ids = self.get_tag_ids()
-            body["tags"] = [{"id": tag_ids[t.strip()]} for t in tags.split(",")]
-
         result = _get_json(self._request(
             "api/issues?fields=idReadable",
             method="POST",
@@ -220,6 +216,8 @@ class YouTrack:
         ))
         if not result:
             _fail("failed to create issue")
+        if tags:
+            self.issue_tag(result["idReadable"], tags)
         return result
 
     def get_tag_ids(self) -> Dict[str, str]:
@@ -230,7 +228,21 @@ class YouTrack:
         if not tags:
             _fail("failed to retrieve issue tags")
         return {t["name"]: t["id"] for t in tags}
-    
+
+    def issue_tag(self, issue: str, tags: str) -> None:
+        """Add tags to an issue (comma-separated tag names)."""
+        tag_ids = self.get_tag_ids()
+        for tag in tags.split(","):
+            tag = tag.strip()
+            if not tag:
+                continue
+            _assert_ok_status(self._request(
+                f"api/issues/{issue}/tags",
+                method="POST",
+                headers={"Content-Type": "application/json"},
+                data=json.dumps({"id": tag_ids[tag]}).encode()
+            ))
+
     def issue_watch(self, issue: str, logins: str) -> None:
         """Add watchers to an issue by logins (comma-separated)."""
         for login in logins.split(","):
@@ -393,6 +405,11 @@ if __name__ == "__main__":
     issue_search_parser = subparsers.add_parser("issue-search")
     issue_search_parser.set_defaults(func=YouTrack.issue_search)
     issue_search_parser.add_argument("--query", required=True)
+
+    issue_tag_parser = subparsers.add_parser("issue-tag")
+    issue_tag_parser.set_defaults(func=YouTrack.issue_tag)
+    issue_tag_parser.add_argument("--issue", required=True)
+    issue_tag_parser.add_argument("--tags", required=True)
 
     issue_close_parser = subparsers.add_parser("issue-close")
     issue_close_parser.set_defaults(func=lambda yt, issue, resolution:
