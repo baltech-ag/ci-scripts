@@ -256,7 +256,7 @@ class YouTrack:
                 f"api/issues/{issue}/watchers",
                 method="POST",
                 headers={"Content-Type": "application/json"},
-                data=json.dumps({"id": user["id"]}).encode()
+                data=json.dumps({"user": {"id": user["id"]}}).encode()
             ))
 
     def get_link_type_ids(self) -> Dict[str, str]:
