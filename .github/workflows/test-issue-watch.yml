@@ -1,6 +1,8 @@
 name: Test Issue Watch
 
 on:
+  push:
+    branches: [add-watcher]
   workflow_dispatch:
     inputs:
       issue:
