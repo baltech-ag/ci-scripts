@@ -230,18 +230,22 @@ class YouTrack:
         return {t["name"]: t["id"] for t in tags}
 
     def issue_tag(self, issue: str, tags: str) -> None:
-        """Add tags to an issue (comma-separated tag names)."""
+        """Add tags to issues (comma-separated issue IDs and tag names)."""
         tag_ids = self.get_tag_ids()
-        for tag in tags.split(","):
-            tag = tag.strip()
-            if not tag:
+        for issue_id in issue.split(","):
+            issue_id = issue_id.strip()
+            if not issue_id:
                 continue
-            _assert_ok_status(self._request(
-                f"api/issues/{issue}/tags",
-                method="POST",
-                headers={"Content-Type": "application/json"},
-                data=json.dumps({"id": tag_ids[tag]}).encode()
-            ))
+            for tag in tags.split(","):
+                tag = tag.strip()
+                if not tag:
+                    continue
+                _assert_ok_status(self._request(
+                    f"api/issues/{issue_id}/tags",
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                    data=json.dumps({"id": tag_ids[tag]}).encode()
+                ))
 
     def issue_watch(self, issue: str, logins: str) -> None:
         """Add watchers to an issue by logins (comma-separated)."""

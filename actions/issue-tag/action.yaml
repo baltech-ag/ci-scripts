@@ -6,7 +6,7 @@ branding:
 inputs:
   issue:
     required: true
-    description: "YouTrack Issue ID (e.g. SDK-123)"
+    description: "Comma-separated YouTrack Issue IDs (e.g. SDK-123 or SDK-123,SDK-456)"
   tags:
     required: true
     description: "Comma-separated list of tags to add to the issue"
