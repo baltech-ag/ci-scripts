@@ -257,10 +257,10 @@ class YouTrack:
             if not user:
                 _fail(f"user with login {login} not found")
             _assert_ok_status(self._request(
-                f"api/issues/{issue}/watchers",
+                f"api/issues/{issue}/watchers/issueWatchers",
                 method="POST",
                 headers={"Content-Type": "application/json"},
-                data=json.dumps({"user": {"id": user["id"]}}).encode()
+                data=json.dumps({"user": {"id": user["id"]}, "isStarred": True}).encode()
             ))
 
     def get_link_type_ids(self) -> Dict[str, str]:
