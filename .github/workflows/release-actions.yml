@@ -34,11 +34,11 @@ jobs:
   release-context:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Checkout ci-scripts repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: baltech-ag/ci-scripts
           ref: ${{ inputs.ci-scripts-ref }}
@@ -94,7 +94,7 @@ jobs:
     steps:
       - name: Generate a token
         id: generate-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
@@ -112,7 +112,7 @@ jobs:
           echo "::error::Version ${{ needs.release-context.outputs.issue-version }} does not exist in project ${{ needs.release-context.outputs.project }}"
           exit 1
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
@@ -132,7 +132,7 @@ jobs:
           python -m pip install tox==3.28.0
       - name: Restore tox environment from cache
         id: tox-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .tox
           key: ${{ runner.os }}-tox-${{ hashFiles('tox.ini') }}-${{ hashFiles('poetry.lock') }}
@@ -180,12 +180,12 @@ jobs:
     steps:
       - name: Generate a token
         id: generate-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           token: ${{ steps.generate-token.outputs.token }}
       - name: Configure git
@@ -210,12 +210,12 @@ jobs:
     steps:
       - name: Generate a token
         id: generate-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
@@ -291,7 +291,7 @@ jobs:
     if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
     steps:
       - name: Checkout ci-scripts repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           repository: baltech-ag/ci-scripts
           ref: ${{ inputs.ci-scripts-ref }}
