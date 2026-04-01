@@ -19,10 +19,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Add watcher
+        env:
+          ISSUE: ${{ inputs.issue || 'JTST-102' }}
+          LOGINS: ${{ inputs.logins || 'Stefan.Hölzl' }}
         run: |
           python youtrack.py \
             --base-url="${{ vars.YOUTRACK_URL }}" \
             --token="${{ secrets.YOUTRACK_TOKEN }}" \
             issue-watch \
-            --issue="${{ inputs.issue }}" \
-            --logins="${{ inputs.logins }}"
+            --issue="$ISSUE" \
+            --logins="$LOGINS"
