@@ -27,6 +27,8 @@ jobs:
         with:
           repository: baltech-ag/ci-scripts
           path: ci-scripts
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v8.0.0
       - name: Set default env
         run: |
           commits=$(
@@ -44,13 +46,8 @@ jobs:
           echo "CI_NUM_COMMITS=${{ github.event.pull_request.commits }}" >> $GITHUB_ENV
           echo "CI_COMMIT_SHA=" >> $GITHUB_ENV
           echo "CI_COMMIT_REF_NAME=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-      - name: Create QR code
-        uses: snow-actions/qrcode@v1.2.0
-        with:
-          text: '${{ inputs.android-url }}'
-          path: '${{ inputs.qrcode-filename }}'
       - name: Build Comment
-        run: python ci-scripts/build_android_comment.py > comment.json
+        run: uv run ci-scripts/build_android_comment.py > comment.json
         env:
           CI_AUTHOR_NAME: '${{ github.actor }}'
           CI_REPO_URL: '${{ github.server_url }}/${{ github.repository }}'

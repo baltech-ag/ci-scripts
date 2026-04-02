@@ -1,8 +1,16 @@
 #!python3
 # -*- coding: utf-8 -*-
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "qrcode[pil]",
+# ]
+# ///
 
 import os
 import json
+
+import qrcode
 
 from common import retrieve_commits, group_by_issue
 
@@ -46,6 +54,9 @@ def create_comments():
         env[ANDROID_URL],
         env[ANDROID_QRCODE],
     )
+
+    qrcode.make(env[ANDROID_URL]).save(env[ANDROID_QRCODE])
+    
     return {
         issue: {
             "comment": comment,
