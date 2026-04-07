@@ -33,7 +33,7 @@ def convert_to_comment(author_name, project_name, repo_url, branch_name,
             f'<a href="{android_url}"><b>Android</b> test build</a> '
             f'for <a href="{repo_url}"><b>{project_name}</b></a> '
             f'on branch <b>{branch_name}</b>:<br><br>\n'
-            f'<img src="{android_qrcode}" width="100">')
+            f'![]({android_qrcode})')
 
 
 def create_comments():
