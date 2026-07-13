@@ -1,4 +1,4 @@
-# Version: 2024-06-13
+# Version: 2026-07-13
 # This is an organization workflow, it should not be edited!
 # The original source is in the baltech-ag/ci-scripts repository in the templates folder
 # https://baltech-wiki.atlassian.net/wiki/spaces/THIR/pages/257785857/GitHub#GitHub-Workflows-f%C3%BCr-Releasemanagement-einrichten
@@ -19,7 +19,21 @@ jobs:
     secrets: inherit
   deploy-build:
     needs: [release-actions]
-    if: github.event_name == 'push'
+    # Deploy on every push except the push of the [release] commit to a
+    # version branch or master: the tag push that follows seconds later runs
+    # the authoritative release deploy, so this deploy would build the same
+    # commit twice in development mode. For MobileIDApp this even failed
+    # reproducibly, because both development deploys of the [release] commit
+    # (release-* branch and version branch) submitted the same temporarily
+    # bumped version to the TestFlight beta review, which Apple rejects while
+    # the first review is still pending. Pushes of the [release] commit to
+    # release-* branches keep deploying, as they are the PR checks that gate
+    # the auto-merge.
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref_type == 'tag' ||
+      startsWith(github.ref_name, 'release-') ||
+      !startsWith(github.event.head_commit.message, '[release]'))
     uses: ./.github/workflows/repo-release-actions-deploy.yml
     with:
       release-stage: ${{ needs.release-actions.outputs.release-stage }}
