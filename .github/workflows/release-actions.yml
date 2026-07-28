@@ -284,6 +284,40 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
 
+  review-issues:
+    name: Sets issues mentioned in the PR body to review
+    runs-on: ubuntu-24.04
+    # A PR that is opened as draft is not ready for review yet, it is handled
+    # when the draft flag is removed ('ready_for_review').
+    if: >-
+      github.event_name == 'pull_request' &&
+      (github.event.action == 'ready_for_review' ||
+      (github.event.action == 'opened' && github.event.pull_request.draft == false))
+    steps:
+      - name: Checkout ci-scripts repository
+        uses: actions/checkout@v6
+        with:
+          repository: baltech-ag/ci-scripts
+          ref: ${{ inputs.ci-scripts-ref }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+      - name: Set Issues to In Review
+        run: |
+          while IFS= read -r LINE; do
+            if [[ $LINE =~ ^closes:[[:space:]]*([A-Za-z]+-[0-9]+)[[:space:]]*$ ]]; then
+              ISSUE=${BASH_REMATCH[1]}
+              python youtrack.py \
+                --base-url="${{ vars.YOUTRACK_URL }}" \
+                --token="${{ secrets.YOUTRACK_TOKEN }}" \
+                set-state \
+                --issue=$ISSUE \
+                --state="In Review" || echo "::error::could not set $ISSUE to In Review"
+            fi
+          done <<< "$BODY"
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+
   closing-issues:
     name: Closes issues mentioned in the PR body
     runs-on: ubuntu-24.04

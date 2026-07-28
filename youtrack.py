@@ -313,8 +313,8 @@ class YouTrack:
             skip += batch_size
         return all_issues
 
-    def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
-        """Close an issue by updating its State field."""
+    def set_state(self, issue: str, state: str) -> None:
+        """Set the State field of an issue."""
         _assert_ok_status(
             self._request(
                 f"api/issues/{issue}",
@@ -331,6 +331,10 @@ class YouTrack:
                 }).encode()
             )
         )
+
+    def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
+        """Close an issue by setting its State field to a closed state."""
+        self.set_state(issue, state)
 
     def _request(
             self,
@@ -426,6 +430,11 @@ if __name__ == "__main__":
     close_issue_parser.set_defaults(func=YouTrack.close_issue)
     close_issue_parser.add_argument("--issue", required=True)
     close_issue_parser.add_argument("--state", default="Closed (Done)")
+
+    set_state_parser = subparsers.add_parser("set-state")
+    set_state_parser.set_defaults(func=YouTrack.set_state)
+    set_state_parser.add_argument("--issue", required=True)
+    set_state_parser.add_argument("--state", required=True)
 
     args = parser.parse_args().__dict__
 
