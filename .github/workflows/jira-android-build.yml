@@ -9,7 +9,7 @@ on:
         description: 'Name and extension of the QR code file'
         type: string
         default: 'android_url.png'
-      jira-ticket-id:
+      ticket-id:
         description: 'If provided, ticket IDs found in commit messages are ignored'
         type: string
         default: ''
