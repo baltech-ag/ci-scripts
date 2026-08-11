@@ -13,6 +13,10 @@ on:
         description: 'If provided, ticket IDs found in commit messages are ignored'
         type: string
         default: ''
+      release-version:
+        description: 'If provided, the comment is posted to the release ticket of this version instead of the tickets from commit messages'
+        type: string
+        default: ''
 jobs:
   jira-android-build:
     name: Comment on new Android build
@@ -56,6 +60,11 @@ jobs:
           CI_TICKET_ID: '${{ inputs.ticket-id }}'
           CI_ANDROID_URL: '${{ inputs.android-url }}'
           CI_ANDROID_QRCODE: '${{ inputs.qrcode-filename }}'
+          CI_RELEASE_VERSION: '${{ inputs.release-version }}'
+          CI_PROJECT: '${{ vars.PROJECT }}'
+          CI_VERSION_TEMPLATE: '${{ vars.VERSION_TEMPLATE }}'
+          CI_YOUTRACK_URL: '${{ vars.YOUTRACK_URL }}'
+          CI_YOUTRACK_TOKEN: '${{ secrets.YOUTRACK_TOKEN }}'
       - name: Post Comment
         uses: ./ci-scripts/actions/issue-comment
         with:
