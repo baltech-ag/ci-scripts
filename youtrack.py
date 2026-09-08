@@ -65,6 +65,25 @@ def _assert_ok_status(req: request.Request) -> None:
 
 class YouTrack:
     def __init__(self, base_url: str, token: str) -> None:
+        # argparse's `required` only checks that the option is present, and a
+        # composite action passes an unset `vars.YOUTRACK_URL` / secret through
+        # as an empty string. Without this check an empty base url produces a
+        # relative request url and the run dies deep inside urllib with
+        # `ValueError: unknown url type: '/api/issues/<ISSUE>/comments'`, which
+        # says nothing about the missing configuration.
+        if "://" not in base_url:
+            _fail(
+                f"invalid YouTrack base url {base_url!r}: the `url` input of "
+                f"the action (vars.YOUTRACK_URL) is empty or malformed - check "
+                f"that the variable is defined and that this repository is "
+                f"allowed to access it"
+            )
+        if not token:
+            _fail(
+                "empty YouTrack API token: the `token` input of the action "
+                "(secrets.YOUTRACK_TOKEN) is empty - check that the secret is "
+                "defined and passed to the workflow"
+            )
         self.base_url = base_url.rstrip('/')
         self.token = token
 
