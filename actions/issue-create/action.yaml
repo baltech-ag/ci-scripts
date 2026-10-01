@@ -21,9 +21,8 @@ inputs:
     default: ""
     description: "Comma-separated list of tags to add to the issue"
   assignee:
-    required: false
-    default: "gitlab@baltech.de"
-    description: "Assignee YouTrack login"
+    required: true
+    description: "Assignee YouTrack login (e.g. vars.YOUTRACK_USER)"
   deduplicate:
     required: false
     default: "false"
