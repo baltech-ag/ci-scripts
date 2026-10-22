@@ -1,6 +1,7 @@
 #!python3
 # -*- coding: utf-8 -*-
 import datetime
+import html
 import json
 import os
 import sys
@@ -61,6 +62,33 @@ def _assert_ok_status(req: request.Request) -> None:
     except HTTPError as e:
         body = e.read().decode() if e.readable() else ""
         _fail(f"request `{req.full_url}` failed with status code {e.status}: {body}")
+
+
+def _error_reason(body: str) -> str:
+    """The human-readable part of a YouTrack error response, e.g. the message
+    of the workflow rule that refused a change."""
+    try:
+        error = json.loads(body)
+    except ValueError:
+        return body.strip()
+    if not isinstance(error, dict):
+        return body.strip()
+    return str(error.get("error_description") or error.get("error") or body).strip()
+
+
+def _close_failed_comment(issue: str, state: str, reason: str, pr_url: str) -> str:
+    merged = (f'The <a href="{html.escape(pr_url)}"><b>pull request</b></a> with '
+              f'<code>closes: {issue}</code> was merged, but YouTrack'
+              if pr_url else 'YouTrack')
+    reason = html.escape(reason or "no reason given").replace("\n", "<br>")
+    return (
+        f'<div style="background:#ffebe6;padding:8px;border-radius:4px">\n'
+        f'\u26A0\uFE0F <b>Closing this ticket failed.</b> {merged} refused to '
+        f'set the state to <b>{html.escape(state)}</b>:\n'
+        f'<blockquote>{reason}</blockquote>\n'
+        f'The ticket stays open: resolve the reason above, then close it by hand.\n'
+        f'</div>\n'
+    )
 
 
 class YouTrack:
@@ -332,28 +360,47 @@ class YouTrack:
             skip += batch_size
         return all_issues
 
-    def set_state(self, issue: str, state: str) -> None:
-        """Set the State field of an issue."""
-        _assert_ok_status(
-            self._request(
-                f"api/issues/{issue}",
-                method="POST",
-                headers={"Content-Type": "application/json"},
-                data=json.dumps({
-                    "customFields": [
-                        {
-                            "name": "State",
-                            "$type": "StateIssueCustomField",
-                            "value": {"name": state}
-                        }
-                    ]
-                }).encode()
-            )
+    def _set_state_request(self, issue: str, state: str) -> request.Request:
+        return self._request(
+            f"api/issues/{issue}",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({
+                "customFields": [
+                    {
+                        "name": "State",
+                        "$type": "StateIssueCustomField",
+                        "value": {"name": state}
+                    }
+                ]
+            }).encode()
         )
 
-    def close_issue(self, issue: str, state: str = "Closed (Done)") -> None:
-        """Close an issue by setting its State field to a closed state."""
-        self.set_state(issue, state)
+    def set_state(self, issue: str, state: str) -> None:
+        """Set the State field of an issue."""
+        _assert_ok_status(self._set_state_request(issue, state))
+
+    def close_issue(self, issue: str, state: str = "Closed (Done)",
+                    comment_on_failure: bool = False, pr_url: str = "") -> None:
+        """Close an issue by setting its State field to a closed state.
+
+        With `comment_on_failure` a refused close also leaves a comment with
+        YouTrack's reason in the issue (e.g. a workflow rule that blocks the
+        close while checklist items are unticked). The `closing-issues` job
+        ignores the failure, as the merged PR stays merged - without the
+        comment nobody would notice that the issue is still open.
+        """
+        if not comment_on_failure:
+            self.set_state(issue, state)
+            return
+        req = self._set_state_request(issue, state)
+        try:
+            request.urlopen(req)
+        except HTTPError as e:
+            body = e.read().decode() if e.readable() else ""
+            self.add_comment(issue, _close_failed_comment(
+                issue, state, _error_reason(body), pr_url))
+            _fail(f"request `{req.full_url}` failed with status code {e.status}: {body}")
 
     def _request(
             self,
@@ -449,6 +496,8 @@ if __name__ == "__main__":
     close_issue_parser.set_defaults(func=YouTrack.close_issue)
     close_issue_parser.add_argument("--issue", required=True)
     close_issue_parser.add_argument("--state", default="Closed (Done)")
+    close_issue_parser.add_argument("--comment-on-failure", action="store_true")
+    close_issue_parser.add_argument("--pr-url", default="")
 
     set_state_parser = subparsers.add_parser("set-state")
     set_state_parser.set_defaults(func=YouTrack.set_state)

@@ -340,8 +340,11 @@ jobs:
                 --base-url="${{ vars.YOUTRACK_URL }}" \
                 --token="${{ secrets.YOUTRACK_TOKEN }}" \
                 close-issue \
-                --issue=$ISSUE || echo "::error::could not close $ISSUE"
+                --issue=$ISSUE \
+                --comment-on-failure \
+                --pr-url="$PR_URL" || echo "::error::could not close $ISSUE"
             fi
           done <<< "$BODY"
         env:
           BODY: ${{ github.event.pull_request.body }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
