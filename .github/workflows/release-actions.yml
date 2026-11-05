@@ -95,7 +95,7 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          client-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - id: version-exists
         uses: baltech-ag/ci-scripts/actions/version-exists@master
@@ -181,7 +181,7 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          client-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Checkout
         uses: actions/checkout@v6
@@ -211,7 +211,7 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.BALTECH_BOT_ID }}
+          client-id: ${{ secrets.BALTECH_BOT_ID }}
           private-key: ${{ secrets.BALTECH_BOT_KEY }}
       - name: Checkout
         uses: actions/checkout@v6
