@@ -21,7 +21,7 @@ runs:
   steps:
     - name: Download artifact
       id: download-artifact
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.artifact-name }}
         path: ${{ inputs.path }}
