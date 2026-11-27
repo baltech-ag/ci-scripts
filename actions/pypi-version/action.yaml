@@ -1,0 +1,72 @@
+# Applies the PyPI version convention of the Release Actions pipeline to the
+# version file, before the Python package is built (pyproject.toml must read its
+# version from this file, e.g. `dynamic = ["version"]` +
+# `[tool.setuptools.dynamic] version = {file = "VERSION"}`).
+#
+# - development: `<version>.dev<run_number>` (e.g. 0.2.0 -> 0.2.0.dev50)
+# - release: version unchanged
+#
+# Only normalized PEP 440 versions (X.Y.Z without leading zeros) are accepted.
+#
+# Usage (in repo-release-actions-deploy.yml, before `uv build`):
+#   - id: version
+#     uses: baltech-ag/ci-scripts/actions/pypi-version@master
+#     with:
+#       deploy-mode: ${{ inputs.deploy-mode }}
+#       version-file: ${{ inputs.version-file }}
+name: PyPI version
+description: Writes the PyPI package version for the current deploy mode into the version file
+inputs:
+  deploy-mode:
+    description: "'development' or 'release'"
+    required: true
+  version-file:
+    description: Path to the version file
+    required: true
+outputs:
+  version:
+    description: The version written to the version file
+    value: ${{ steps.version.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - name: Apply version
+      id: version
+      shell: bash
+      env:
+        DEPLOY_MODE: ${{ inputs.deploy-mode }}
+        VERSION_FILE: ${{ inputs.version-file }}
+        RUN_NUMBER: ${{ github.run_number }}
+      run: |
+        if [[ ! -f "$VERSION_FILE" ]]; then
+          echo "::error::version file '$VERSION_FILE' does not exist"
+          exit 1
+        fi
+        version=$(tr -d '[:space:]' < "$VERSION_FILE")
+
+        if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          echo "::error::version '$version' in '$VERSION_FILE' is not of the form X.Y.Z"
+          exit 1
+        fi
+        normalized="$((10#${BASH_REMATCH[1]})).$((10#${BASH_REMATCH[2]})).$((10#${BASH_REMATCH[3]}))"
+        if [[ "$version" != "$normalized" ]]; then
+          echo "::error::version '$version' in '$VERSION_FILE' is not normalized (PEP 440), use '$normalized'"
+          exit 1
+        fi
+
+        case "$DEPLOY_MODE" in
+          development)
+            version="$version.dev$RUN_NUMBER"
+            echo "$version" > "$VERSION_FILE"
+            echo "::notice::wrote development version $version to $VERSION_FILE"
+            ;;
+          release)
+            echo "::notice::release version $version"
+            ;;
+          *)
+            echo "::error::unexpected deploy-mode '$DEPLOY_MODE', expected 'development' or 'release'"
+            exit 1
+            ;;
+        esac
+
+        echo "version=$version" >> "$GITHUB_OUTPUT"
