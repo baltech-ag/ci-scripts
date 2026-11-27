@@ -1,0 +1,119 @@
+# Publishes one Python package from a dist artifact built by the calling repo:
+# - development: to TestPyPI (skip-existing, re-runs keep the run_number)
+# - release: to PyPI (an already existing version fails the job)
+#
+# The version is applied before the build with the action
+# baltech-ag/ci-scripts/actions/pypi-version. Publish one package per call;
+# `package` must match the prefix of the dist filenames exactly
+# (e.g. `brp_lib` for brp_lib-4.3.0-py3-none-any.whl).
+#
+# Usage (in repo-release-actions-deploy.yml):
+#   publish:
+#     needs: [build]
+#     uses: baltech-ag/ci-scripts/.github/workflows/release-actions-deploy-pypi.yml@master
+#     with:
+#       deploy-mode: ${{ inputs.deploy-mode }}
+#       artifact-name: dist
+#       package: morphtest
+#     secrets: inherit
+name: Release Actions - Deploy package to PyPI
+on:
+  workflow_call:
+    inputs:
+      deploy-mode: # one of development|release
+        type: string
+        required: true
+      artifact-name:
+        type: string
+        required: true
+      package:
+        type: string
+        required: true
+    outputs:
+      package-name:
+        description: "name of the published package"
+        value: ${{ jobs.publish.outputs.package-name }}
+      package-version:
+        description: "version of the published package"
+        value: ${{ jobs.publish.outputs.package-version }}
+      package-url:
+        description: "URL of the published package version on TestPyPI (development) or PyPI (release)"
+        value: ${{ jobs.publish.outputs.package-url }}
+jobs:
+  publish:
+    name: Publish ${{ inputs.package }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: artifact
+      - name: Select package files
+        id: package
+        env:
+          DEPLOY_MODE: ${{ inputs.deploy-mode }}
+          PACKAGE: ${{ inputs.package }}
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        run: |
+          case "$DEPLOY_MODE" in
+            development) index_url="https://test.pypi.org" ;;
+            release) index_url="https://pypi.org" ;;
+            *)
+              echo "::error::unexpected deploy-mode '$DEPLOY_MODE', expected 'development' or 'release'"
+              exit 1
+              ;;
+          esac
+
+          shopt -s nullglob
+          mkdir dist
+          versions=()
+          for file in artifact/"$PACKAGE"-*.whl artifact/"$PACKAGE"-*.tar.gz; do
+            name=$(basename "$file")
+            rest=${name#"$PACKAGE"-}
+            if [[ "$name" == *.whl ]]; then
+              versions+=("${rest%%-*}")
+            else
+              versions+=("${rest%.tar.gz}")
+            fi
+            cp "$file" dist/
+            echo "selected $name"
+          done
+
+          if [[ ${#versions[@]} -eq 0 ]]; then
+            echo "::error::no files of package '$PACKAGE' in artifact '$ARTIFACT_NAME'"
+            ls -1 artifact
+            exit 1
+          fi
+          unique_versions=$(printf '%s\n' "${versions[@]}" | sort -u)
+          if [[ $(wc -l <<< "$unique_versions") -ne 1 ]]; then
+            echo "::error::files of package '$PACKAGE' have different versions: $(echo $unique_versions)"
+            exit 1
+          fi
+
+          echo "name=$PACKAGE" >> "$GITHUB_OUTPUT"
+          echo "version=$unique_versions" >> "$GITHUB_OUTPUT"
+          echo "url=$index_url/project/$PACKAGE/$unique_versions/" >> "$GITHUB_OUTPUT"
+      - name: Publish package to TestPyPI
+        if: inputs.deploy-mode == 'development'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+      - name: Publish package to PyPI
+        if: inputs.deploy-mode == 'release'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+      - name: Report package URL
+        env:
+          NAME: ${{ steps.package.outputs.name }}
+          VERSION: ${{ steps.package.outputs.version }}
+          URL: ${{ steps.package.outputs.url }}
+        run: |
+          echo "::notice title=Published $NAME $VERSION::$URL"
+          echo "[$NAME $VERSION]($URL)" >> "$GITHUB_STEP_SUMMARY"
+    outputs:
+      package-name: ${{ steps.package.outputs.name }}
+      package-version: ${{ steps.package.outputs.version }}
+      package-url: ${{ steps.package.outputs.url }}
